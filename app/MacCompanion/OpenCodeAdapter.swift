@@ -47,8 +47,10 @@ struct OpenCodeAdapter {
         }
         let (data, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode) else {
-            let text = String(data: data, encoding: .utf8) ?? ""
-            throw AdapterError.http(path: path, body: String(text.prefix(300)))
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw AdapterError.http(
+                path: path, body: Self.readableError(from: data, status: status)
+            )
         }
         // Some endpoints answer with nothing — prompt_async is a 204 —
         // and an empty body is success, not JSON to choke on.
@@ -58,11 +60,39 @@ struct OpenCodeAdapter {
 
     enum AdapterError: LocalizedError {
         case http(path: String, body: String)
+        case unknownCommand(String)
+
         var errorDescription: String? {
             switch self {
             case let .http(path, body): return "OpenCode \(path): \(body)"
+            case let .unknownCommand(name):
+                return "No command named \"/\(name)\" in OpenCode on this Mac."
             }
         }
+    }
+
+    /// OpenCode's errors arrive as `{"name":…,"data":{"message":…,"ref":…}}`.
+    /// Raw JSON on a phone screen is not an error message, so pull out the
+    /// sentence a person can act on and keep the ref for the logs.
+    private static func readableError(from data: Data, status: Int) -> String {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            // A 502 from something in front of the server, or a crash with
+            // nothing written — the status is the only fact available, and
+            // an empty string on screen is worse than a dull one.
+            let text = (String(data: data, encoding: .utf8) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? "HTTP \(status), no details" : String(text.prefix(200))
+        }
+        let payload = json["data"] as? [String: Any]
+        let message = payload?["message"] as? String
+            ?? json["message"] as? String
+            ?? json["name"] as? String
+            ?? "unexpected error"
+        if let ref = payload?["ref"] as? String {
+            return "\(message) (\(ref))"
+        }
+        return message
     }
 
     // MARK: - v1: status / capabilities
@@ -139,8 +169,14 @@ struct OpenCodeAdapter {
         out.sort {
             ($0.provider, $0.name.lowercased()) < ($1.provider, $1.name.lowercased())
         }
-        let fallback = try? await defaultModel()
-        return (out, fallback.map { "\($0.providerID)/\($0.modelID)" })
+        // The advertised default must be one of the models actually
+        // offered, or the phone's chip reads "Default model" forever with
+        // nothing to match it against. That happens whenever the
+        // configured default isn't tool-capable — an image model, say —
+        // since those never make this list.
+        let configured = (try? await defaultModel()).map { "\($0.providerID)/\($0.modelID)" }
+        let usable = configured.flatMap { id in out.first { $0.id == id }?.id } ?? out.first?.id
+        return (out, usable)
     }
 
     /// The slash commands this OpenCode offers — built-ins, the user's own
@@ -171,6 +207,14 @@ struct OpenCodeAdapter {
         sessionID: String, directory: String, command: String, arguments: String,
         providerID: String?, modelID: String?, attachments: [Attachment] = []
     ) async throws {
+        // OpenCode answers an unregistered command name with a bare 500
+        // ("UnknownError", no detail — verified live against /summarize,
+        // which is a TUI action rather than a command). Checking the list
+        // first turns that into a sentence naming the actual problem.
+        let known = try await commands()
+        guard known.contains(where: { $0.name == command }) else {
+            throw AdapterError.unknownCommand(command)
+        }
         var body: [String: Any] = ["command": command, "arguments": arguments]
         // This endpoint takes the model as one "provider/model" string,
         // unlike prompt_async's object. An adapter's whole job.

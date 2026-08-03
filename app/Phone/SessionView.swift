@@ -61,7 +61,7 @@ struct SessionView: View {
                 rows: rows, diffs: diffs, error: error,
                 running: running, activity: activity
             )
-            if let matches = paletteMatches, !matches.isEmpty {
+            if let matches = paletteMatches {
                 CommandPalette(commands: matches) { command in
                     // Leave a trailing space when the command wants
                     // arguments, so the caret is where typing continues.
@@ -158,7 +158,7 @@ struct SessionView: View {
         request.project = project
         request.session = session
         request.attachments = files.isEmpty ? nil : files
-        if let slash = SlashInput.parse(prompt) {
+        if let slash = SlashInput.command(prompt, known: commands.commands) {
             // The Mac invokes the command by name; OpenCode expands its own
             // template. Nothing here knows what the command actually says.
             request.command = slash.name

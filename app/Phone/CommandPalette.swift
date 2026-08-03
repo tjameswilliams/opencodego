@@ -11,19 +11,32 @@ struct CommandPalette: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(commands) { command in
-                        Button {
-                            pick(command)
-                        } label: {
-                            row(for: command)
+            if commands.isEmpty {
+                // Says so rather than disappearing: a vanished palette
+                // reads as "this app has no commands", when what actually
+                // happened is a typo the send would have turned into an
+                // opaque server error.
+                Text("No matching command — this will be sent as a message")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(commands) { command in
+                            Button {
+                                pick(command)
+                            } label: {
+                                row(for: command)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .frame(maxHeight: 220)
             }
-            .frame(maxHeight: 220)
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
