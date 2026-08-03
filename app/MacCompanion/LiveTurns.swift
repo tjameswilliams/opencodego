@@ -101,8 +101,11 @@ final class LiveTurns {
             // matter escalate to a push; token-by-token streaming does not.
             switch event.kind {
             case "permission":
+                // The id travels so a notification button can answer this
+                // exact request without opening the app to find it.
                 Attention.publish(
-                    kind: "permission", sessionID: run.sessionID, directory: run.directory
+                    kind: "permission", sessionID: run.sessionID,
+                    directory: run.directory, permissionID: event.permission?.id
                 )
             case "question":
                 Attention.publish(

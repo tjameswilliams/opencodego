@@ -324,10 +324,47 @@ struct OpenCodeAdapter {
         return list.compactMap(Self.permission(from:))
     }
 
-    func replyPermission(id: String, directory: String, reply: String) async throws {
-        try await post(
-            "/permission/\(id)/reply", directory: directory, body: ["reply": reply]
-        )
+    func replyPermission(
+        id: String, directory: String, reply: String, message: String? = nil
+    ) async throws {
+        var body: [String: Any] = ["reply": reply]
+        // A rejection with direction reaches the agent as guidance rather
+        // than a bare no.
+        if let message, !message.isEmpty { body["message"] = message }
+        try await post("/permission/\(id)/reply", directory: directory, body: body)
+    }
+
+    /// How loudly to ask.
+    ///
+    /// Reads and in-project edits are cheap to undo — version control is
+    /// the safety net, which is the same reasoning Anthropic uses to let
+    /// them through with less friction. What escalates: destruction,
+    /// privilege, the network, and anything reaching outside the project.
+    static func risk(of permission: String?, patterns: [String]) -> String {
+        let text = patterns.joined(separator: " ").lowercased()
+        switch permission {
+        case "read", "glob", "grep", "list", "lsp":
+            return "low"
+        case "edit", "write", "patch":
+            return text.contains("..") ? "high" : "low"
+        case "external_directory", "webfetch", "websearch":
+            return "high"
+        case "bash":
+            // Substring matching on purpose: these appear mid-pipeline
+            // (`foo && rm -rf bar`) as often as at the start.
+            let dangerous = [
+                "rm ", "rm -", "sudo", "chmod", "chown", "dd ", "mkfs",
+                "curl", "wget", "ssh ", "scp ", "npm publish", "git push",
+                "git reset --hard", "kill ", "launchctl", "defaults write",
+                "> /", "shutdown", "reboot",
+            ]
+            if dangerous.contains(where: { text.contains($0) }) { return "high" }
+            let safe = ["git status", "git diff", "git log", "ls", "cat ", "echo ", "pwd"]
+            if safe.contains(where: { text.hasPrefix($0) }) { return "low" }
+            return "medium"
+        default:
+            return "medium"
+        }
     }
 
     // MARK: - v1: question
@@ -420,12 +457,14 @@ struct OpenCodeAdapter {
            let command = metadata["command"] as? String {
             patterns = [command]
         }
+        let kind = body["permission"] as? String ?? body["type"] as? String
         return PermissionRequest(
             id: id,
             sessionID: body["sessionID"] as? String,
-            permission: body["permission"] as? String ?? body["type"] as? String,
+            permission: kind,
             patterns: patterns,
-            always: body["always"] as? [String]
+            always: body["always"] as? [String],
+            risk: risk(of: kind, patterns: patterns)
         )
     }
 

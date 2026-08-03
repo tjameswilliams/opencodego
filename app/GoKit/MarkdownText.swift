@@ -55,13 +55,25 @@ struct MarkdownText: View {
                 }
             }
         case let .code(text):
-            Text(text)
-                .font(.system(.callout, design: .monospaced))
-                .lineSpacing(bodyLineSpacing)
-                .textSelection(.enabled)
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+            // Scrolls horizontally, never wraps. Fitting 80 columns on a
+            // phone would need roughly a 7.5pt font — below Apple's floor
+            // and unreadable — and wrapping destroys indentation, which is
+            // the only structure code has. Better to scroll a line than to
+            // mangle a block.
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(text)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .lineSpacing(bodyLineSpacing)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+            )
         }
     }
 

@@ -24,6 +24,9 @@ targets:
       - path: ../../app/Phone/WorkingIndicator.swift
       - path: ../../app/Phone/BrandWordmark.swift
       - path: ../../app/Phone/DesignTokens.swift
+      - path: ../../app/Phone/Transcript.swift
+      - path: ../../app/Phone/PermissionSheet.swift
+      - path: ../../app/Phone/ReasoningBlock.swift
       - path: ../../app/Phone/Dictation.swift
       - path: ../../app/Phone/PromptAttachments.swift
       - path: ../../app/Phone/ModelStore.swift

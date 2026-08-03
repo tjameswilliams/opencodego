@@ -15,7 +15,32 @@ final class PushManager: NSObject, UIApplicationDelegate, UNUserNotificationCent
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        UNUserNotificationCenter.current().delegate = self
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        // Approve straight from the notification — nobody else ships this,
+        // and the biometric gate makes it safe: `authenticationRequired`
+        // means the device must be unlocked before the action fires, so a
+        // phone on a table can't grant anything.
+        let allow = UNNotificationAction(
+            identifier: Attention.allowAction,
+            title: "Allow Once",
+            options: [.authenticationRequired]
+        )
+        let reject = UNNotificationAction(
+            identifier: Attention.rejectAction,
+            title: "Reject",
+            options: [.destructive]
+        )
+        center.setNotificationCategories([
+            UNNotificationCategory(
+                identifier: Attention.permissionCategory,
+                actions: [allow, reject],
+                intentIdentifiers: []
+            ),
+            UNNotificationCategory(
+                identifier: Attention.plainCategory, actions: [], intentIdentifiers: []
+            ),
+        ])
         return true
     }
 
@@ -52,6 +77,31 @@ final class PushManager: NSObject, UIApplicationDelegate, UNUserNotificationCent
     ) async {
         let userInfo = response.notification.request.content.userInfo
         guard let info = await Attention.resolve(userInfo: userInfo) else { return }
+
+        // A button on the notification answers in place. Opening the app to
+        // approve a command you have already read is the step every other
+        // agent tool still makes you take.
+        if response.actionIdentifier == Attention.allowAction
+            || response.actionIdentifier == Attention.rejectAction {
+            guard let permissionID = info.permissionID, let directory = info.directory else {
+                await MainActor.run { attention = info }
+                return
+            }
+            var wire = Wire.Request(kind: "permission")
+            wire.permissionID = permissionID
+            wire.project = directory
+            wire.reply = response.actionIdentifier == Attention.allowAction ? "once" : "reject"
+            var failure: String?
+            for await event in MacLink().run(wire) where event.kind == "failed" {
+                failure = event.text
+            }
+            // The Mac was unreachable, so nothing was decided. Put the user
+            // in the app rather than leaving them believing they answered.
+            if failure != nil {
+                await MainActor.run { attention = info }
+            }
+            return
+        }
         await MainActor.run { attention = info }
     }
 }

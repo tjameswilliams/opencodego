@@ -27,6 +27,9 @@ struct SessionView: View {
     /// arrived — exactly what `resume` needs.
     @State private var turnID: String?
     @State private var cursor = 0
+    /// When the running turn began — the working indicator escalates its
+    /// wording against this.
+    @State private var turnStartedAt = Date()
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = Dictation()
     @ObservedObject private var models = ModelStore.shared
@@ -59,7 +62,7 @@ struct SessionView: View {
         VStack(spacing: 0) {
             Transcript(
                 rows: rows, diffs: diffs, error: error,
-                running: running, activity: activity
+                running: running, activity: activity, turnStartedAt: turnStartedAt
             )
             if let matches = paletteMatches {
                 CommandPalette(commands: matches) { command in
@@ -84,8 +87,8 @@ struct SessionView: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $permission) { request in
-            PermissionSheet(request: request) { reply in
-                answer(request, reply: reply)
+            PermissionSheet(request: request) { reply, message in
+                answer(request, reply: reply, message: message)
             }
         }
         .sheet(item: $question) { request in
@@ -174,6 +177,7 @@ struct SessionView: View {
         request.turn = id
         turnID = id
         cursor = 0
+        turnStartedAt = Date()
         running = true
         Task { await consume(MacLink().run(request)) }
     }
@@ -251,7 +255,7 @@ struct SessionView: View {
 
     // MARK: - Approvals
 
-    private func answer(_ request: PermissionRequest, reply: String) {
+    private func answer(_ request: PermissionRequest, reply: String, message: String?) {
         Task {
             // Face ID stands in front of granting, never of declining.
             if reply != "reject", await !Approver.confirm() { return }
@@ -260,6 +264,7 @@ struct SessionView: View {
             wire.permissionID = request.id
             wire.project = project
             wire.reply = reply
+            wire.message = message
             for await event in MacLink().run(wire) where event.kind == "failed" {
                 error = event.text
             }
@@ -284,38 +289,3 @@ struct SessionView: View {
     }
 }
 
-private struct PermissionSheet: View {
-    let request: PermissionRequest
-    let reply: (String) -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Label(request.permission ?? "Permission", systemImage: "hand.raised")
-                .font(.headline)
-            if let patterns = request.patterns, !patterns.isEmpty {
-                Text(patterns.joined(separator: "\n"))
-                    .font(.body.monospaced())
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-            }
-            if let always = request.always, !always.isEmpty {
-                Text("“Always” will allow: \(always.joined(separator: ", "))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            HStack {
-                Button("Reject", role: .destructive) { reply("reject") }
-                    .frame(maxWidth: .infinity)
-                Button("Always") { reply("always") }
-                    .frame(maxWidth: .infinity)
-                Button("Allow Once") { reply("once") }
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(24)
-        .presentationDetents([.medium])
-        .interactiveDismissDisabled()
-    }
-}

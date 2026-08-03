@@ -65,6 +65,9 @@ public enum Wire {
         public var permissionID: String?
         /// permission: "once" | "always" | "reject".
         public var reply: String?
+        /// permission: what to do instead, on a reject. A denial that can
+        /// carry direction is steering rather than a dead end.
+        public var message: String?
         /// question: which ask this answers.
         public var questionID: String?
         /// question: selected labels per question, in order. A free-text

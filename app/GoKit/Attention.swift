@@ -29,7 +29,17 @@ public enum Attention {
         public var kind: String
         public var sessionID: String?
         public var directory: String?
+        /// Set for permission asks, so a notification action can answer
+        /// the exact request without the app having to guess which one.
+        public var permissionID: String?
     }
+
+    /// Notification category carrying Allow/Reject actions, used only for
+    /// permission asks — the other kinds have nothing to decide.
+    public static let permissionCategory = "OPENCODEGO_PERMISSION"
+    public static let plainCategory = "OPENCODEGO_ATTENTION"
+    public static let allowAction = "OPENCODEGO_ALLOW_ONCE"
+    public static let rejectAction = "OPENCODEGO_REJECT"
 
     // MARK: - Mac: publish
 
@@ -43,11 +53,14 @@ public enum Attention {
     /// is logged, never fatal — the turn's outcome doesn't depend on the
     /// notification about it.
     @MainActor
-    public static func publish(kind: String, sessionID: String?, directory: String?) {
+    public static func publish(
+        kind: String, sessionID: String?, directory: String?, permissionID: String? = nil
+    ) {
         let record = CKRecord(recordType: recordType)
         record["kind"] = kind
         record["sessionID"] = sessionID
         record["directory"] = directory
+        record["permissionID"] = permissionID
         let previous = lastRecordID
         lastRecordID = record.recordID
         Task {
@@ -70,26 +83,52 @@ public enum Attention {
     /// subscription on a type CloudKit has never seen is an error, and in
     /// the Development environment saving (then deleting) a throwaway
     /// record is what creates the schema.
+    /// Two subscriptions, split by kind, because only one of them has
+    /// anything to decide: a permission ask gets a category carrying
+    /// Allow/Reject actions, everything else gets a plain alert. A single
+    /// subscription would put Allow buttons on "the agent finished".
     public static func ensureSubscription() async {
         do {
+            // A query subscription on a record type CloudKit has never
+            // seen is an error; saving and deleting one creates the schema
+            // in the Development environment.
             let seed = CKRecord(recordType: recordType)
             seed["kind"] = "seed"
+            seed["permissionID"] = ""
+            seed["sessionID"] = ""
+            seed["directory"] = ""
             let saved = try await db.save(seed)
             _ = try? await db.deleteRecord(withID: saved.recordID)
 
-            let subscription = CKQuerySubscription(
+            let permission = CKQuerySubscription(
                 recordType: recordType,
-                predicate: NSPredicate(value: true),
-                subscriptionID: subscriptionID,
+                predicate: NSPredicate(format: "kind == %@", "permission"),
+                subscriptionID: "\(subscriptionID)-permission",
                 options: .firesOnRecordCreation
             )
-            let note = CKSubscription.NotificationInfo()
-            // Generic on purpose — content stays off the push path.
-            note.alertBody = "Your coding agent needs attention."
-            note.soundName = "default"
-            subscription.notificationInfo = note
-            _ = try await db.save(subscription)
-            logger.notice("attention subscription in place")
+            let permissionNote = CKSubscription.NotificationInfo()
+            // Generic on purpose — the command itself never rides a push.
+            permissionNote.alertBody = "Your coding agent is waiting for approval."
+            permissionNote.soundName = "default"
+            permissionNote.category = permissionCategory
+            permission.notificationInfo = permissionNote
+
+            let other = CKQuerySubscription(
+                recordType: recordType,
+                predicate: NSPredicate(format: "kind != %@", "permission"),
+                subscriptionID: "\(subscriptionID)-other",
+                options: .firesOnRecordCreation
+            )
+            let otherNote = CKSubscription.NotificationInfo()
+            otherNote.alertBody = "Your coding agent needs attention."
+            otherNote.soundName = "default"
+            otherNote.category = plainCategory
+            other.notificationInfo = otherNote
+
+            _ = try await db.modifySubscriptions(
+                saving: [permission, other], deleting: [subscriptionID]
+            )
+            logger.notice("attention subscriptions in place")
         } catch {
             logger.error("attention subscribe failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -108,7 +147,8 @@ public enum Attention {
         return Info(
             kind: record["kind"] as? String ?? "permission",
             sessionID: record["sessionID"] as? String,
-            directory: record["directory"] as? String
+            directory: record["directory"] as? String,
+            permissionID: (record["permissionID"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         )
     }
 }

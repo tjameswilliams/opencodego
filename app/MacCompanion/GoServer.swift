@@ -387,7 +387,9 @@ private final class Connection {
             guard let id = request.permissionID, let directory = request.project,
                   let reply = request.reply
             else { return [] }
-            try await adapter.replyPermission(id: id, directory: directory, reply: reply)
+            try await adapter.replyPermission(
+                id: id, directory: directory, reply: reply, message: request.message
+            )
             return []
         }
     }

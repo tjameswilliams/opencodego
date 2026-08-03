@@ -85,17 +85,36 @@ public struct PermissionRequest: Codable, Equatable, Identifiable, Sendable {
     /// What an "always" reply would whitelist — shown so "always allow"
     /// is an informed choice, not a mystery toggle.
     public var always: [String]?
+    /// "low" | "medium" | "high". Drives how loud the card is.
+    ///
+    /// Anthropic reports users approve 93% of permission prompts, and a
+    /// card that looks identical every time is optimising for exactly that
+    /// habituation — varying presentation by risk is the empirically
+    /// supported answer.
+    public var risk: String?
 
     public init(
         id: String, sessionID: String? = nil, permission: String? = nil,
-        patterns: [String]? = nil, always: [String]? = nil
+        patterns: [String]? = nil, always: [String]? = nil, risk: String? = nil
     ) {
         self.id = id
         self.sessionID = sessionID
         self.permission = permission
         self.patterns = patterns
         self.always = always
+        self.risk = risk
     }
+
+    public enum Risk: String {
+        /// Reversible and inside the project — git makes the cost of a
+        /// wrong edit small.
+        case low
+        case medium
+        /// Destructive, privileged, networked, or outside the workspace.
+        case high
+    }
+
+    public var riskLevel: Risk { Risk(rawValue: risk ?? "") ?? .medium }
 }
 
 /// A file riding along with a prompt — a screenshot, a photo of a
