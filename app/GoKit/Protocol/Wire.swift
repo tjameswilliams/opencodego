@@ -34,8 +34,9 @@ public enum Wire {
     /// fields are that operation's arguments, all optional so unknown or
     /// missing ones decode cleanly across app versions.
     public struct Request: Codable {
-        /// "status" | "projects" | "sessions" | "prompt" | "resume" |
-        /// "abort" | "permission" | "pending" | "transcript"
+        /// "status" | "projects" | "sessions" | "models" | "prompt" |
+        /// "resume" | "abort" | "permission" | "question" | "pending" |
+        /// "transcript"
         public var kind: String
         /// prompt/resume: the phone-minted turn id, so an answer can outlive
         /// the socket that asked for it (iOS suspends sockets on background;
@@ -109,6 +110,10 @@ public enum Wire {
         /// On `question` (one ask, live) and `pending` (all of them).
         public var question: QuestionRequest?
         public var questions: [QuestionRequest]?
+        /// On `models`: what this Mac's OpenCode is configured to run.
+        public var models: [AgentModel]?
+        /// On `models`: the one used when the phone doesn't pick.
+        public var defaultModel: String?
         /// On `diff`: what the turn changed.
         public var diffs: [FileDiff]?
         /// On `status` and `part`: which OpenCode session this concerns —

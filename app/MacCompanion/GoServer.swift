@@ -241,6 +241,14 @@ private final class Connection {
             answer { var e = Wire.Event(kind: "sessions")
                      e.sessions = try await adapter.sessions(search: request.search)
                      return [e] }
+        case "models":
+            answer {
+                let (models, defaultID) = try await adapter.models()
+                var e = Wire.Event(kind: "models")
+                e.models = models
+                e.defaultModel = defaultID
+                return [e]
+            }
         case "prompt":
             servePrompt(request, adapter: adapter)
         case "resume":

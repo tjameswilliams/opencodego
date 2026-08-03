@@ -38,11 +38,20 @@ struct HarnessView: View {
 
                 Divider()
                 Text("Composer — empty").font(.caption).foregroundStyle(.secondary)
-                Composer(input: $empty, running: false, dictation: idle, onDictate: {}, onSend: {})
+                Composer(
+                    input: $empty, running: false, dictation: idle,
+                    modelLabel: "Claude Opus 5", onModel: {}, onDictate: {}, onSend: {}
+                )
                 Text("Composer — typed").font(.caption).foregroundStyle(.secondary)
-                Composer(input: $typed, running: false, dictation: idle, onDictate: {}, onSend: {})
+                Composer(
+                    input: $typed, running: false, dictation: idle,
+                    modelLabel: "Gemini 3.5 Flash", onModel: {}, onDictate: {}, onSend: {}
+                )
                 Text("Composer — running").font(.caption).foregroundStyle(.secondary)
-                Composer(input: $empty, running: true, dictation: idle, onDictate: {}, onSend: {})
+                Composer(
+                    input: $empty, running: true, dictation: idle,
+                    modelLabel: "Claude Opus 5", onModel: {}, onDictate: {}, onSend: {}
+                )
             }
             .navigationTitle("opencodego")
             .navigationBarTitleDisplayMode(.inline)

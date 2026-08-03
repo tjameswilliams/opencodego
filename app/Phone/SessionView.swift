@@ -29,6 +29,8 @@ struct SessionView: View {
     @State private var cursor = 0
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = Dictation()
+    @ObservedObject private var models = ModelStore.shared
+    @State private var pickingModel = false
     /// What was typed before dictation started, so speech appends to it
     /// rather than eating it.
     @State private var typedBeforeDictation = ""
@@ -56,6 +58,8 @@ struct SessionView: View {
                 input: $input,
                 running: running,
                 dictation: dictation,
+                modelLabel: models.models.isEmpty ? nil : models.label,
+                onModel: { pickingModel = true },
                 onDictate: {
                     if !dictation.recording { typedBeforeDictation = input }
                     dictation.toggle()
@@ -84,9 +88,13 @@ struct SessionView: View {
                 }
             }
         }
+        .sheet(isPresented: $pickingModel) {
+            ModelPicker(store: models)
+        }
         .task {
             if session != nil { await loadTranscript() }
         }
+        .task { await models.loadIfNeeded() }
         .onChange(of: scenePhase) {
             // Back on screen with a turn unfinished: the socket is dead
             // (iOS killed it), the Mac's work isn't. Pick the turn back up.
@@ -123,6 +131,10 @@ struct SessionView: View {
         request.project = project
         request.session = session
         request.text = text
+        // Absent means "whatever the Mac would have used" — a deliberate
+        // choice the picker offers explicitly.
+        request.providerID = models.selected?.providerID
+        request.modelID = models.selected?.modelID
         let id = UUID().uuidString
         request.turn = id
         turnID = id

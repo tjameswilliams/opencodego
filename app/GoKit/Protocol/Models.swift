@@ -98,6 +98,35 @@ public struct PermissionRequest: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// One model the user can pick, flattened from OpenCode's provider config.
+public struct AgentModel: Codable, Hashable, Identifiable, Sendable {
+    public var providerID: String
+    public var modelID: String
+    /// Display name ("Claude Opus 5"), falling back to the raw id.
+    public var name: String
+    /// Display name of the provider it belongs to ("Anthropic").
+    public var provider: String
+    /// Can it think before answering? Worth surfacing — on a phone the
+    /// difference is minutes.
+    public var reasoning: Bool?
+    /// Can it accept images/files? Gates the attachment UI when that lands.
+    public var attachment: Bool?
+
+    public var id: String { "\(providerID)/\(modelID)" }
+
+    public init(
+        providerID: String, modelID: String, name: String, provider: String,
+        reasoning: Bool? = nil, attachment: Bool? = nil
+    ) {
+        self.providerID = providerID
+        self.modelID = modelID
+        self.name = name
+        self.provider = provider
+        self.reasoning = reasoning
+        self.attachment = attachment
+    }
+}
+
 /// The agent is asking the user something — distinct from a permission:
 /// there's nothing to allow, just a decision only the user can make.
 public struct QuestionRequest: Codable, Hashable, Identifiable, Sendable {

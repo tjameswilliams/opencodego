@@ -1,24 +1,30 @@
 import SwiftUI
 
 /// The prompt bar, following the shape Claude and ChatGPT have converged
-/// on: one rounded container holding the field, with the controls on their
-/// own row beneath it. Circular 36pt buttons — the previous inline icons
-/// were below the 44pt touch target and read as small next to the field.
+/// on: one rounded container holding the text field, with a control row
+/// beneath it — context controls (the model) on the left, actions (dictate,
+/// send) on the right.
+///
+/// Circular 36pt buttons: the earlier inline icons sat under the 44pt touch
+/// target and read small against the field.
 struct Composer: View {
     @Binding var input: String
     let running: Bool
     @ObservedObject var dictation: Dictation
+    /// What the model chip says. Nil hides the chip entirely — better than
+    /// showing "Default" before the catalogue has loaded and then changing
+    /// its mind under the user's thumb.
+    let modelLabel: String?
+    let onModel: () -> Void
     let onDictate: () -> Void
     let onSend: () -> Void
-
-    @FocusState private var focused: Bool
 
     private var empty: Bool {
         input.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    /// Send is only meaningful with something to send; while a turn runs
-    /// the same button becomes stop, which is always available.
+    /// Send needs something to send; stop is always available while a turn
+    /// runs.
     private var sendEnabled: Bool { running || !empty }
 
     var body: some View {
@@ -29,11 +35,13 @@ struct Composer: View {
             )
             .textFieldStyle(.plain)
             .lineLimit(1 ... 6)
-            .focused($focused)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 10) {
-                Spacer()
+            HStack(spacing: 8) {
+                if let modelLabel {
+                    ModelChip(label: modelLabel, action: onModel)
+                }
+                Spacer(minLength: 8)
                 if !dictation.unavailable {
                     CircleButton(
                         systemName: dictation.recording ? "mic.fill" : "mic",
@@ -53,20 +61,44 @@ struct Composer: View {
                 .accessibilityLabel(running ? "Stop the agent" : "Send")
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(Color.primary.opacity(0.06))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
                         .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                 )
         )
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.bottom, 8)
         .animation(.easeInOut(duration: 0.15), value: dictation.recording)
         .animation(.easeInOut(duration: 0.15), value: sendEnabled)
+    }
+}
+
+/// The model selector: a capsule chip carrying the current model's name,
+/// sized to match the circular buttons opposite it.
+struct ModelChip: View {
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(label).lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .font(.subheadline)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(Capsule().fill(Color.primary.opacity(0.08)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Model: \(label). Tap to change.")
     }
 }
 

@@ -105,6 +105,44 @@ struct OpenCodeAdapter {
         return nil
     }
 
+    /// Every model the user's OpenCode can actually run as an agent.
+    ///
+    /// Filtered to tool-callers on purpose: a model that can't call tools
+    /// cannot read a file or run a command, so offering one here would be
+    /// offering a coding agent that can only talk. (This is also what made
+    /// the old provider-default fallback pick an image model.)
+    func models() async throws -> (models: [AgentModel], defaultID: String?) {
+        let json = try await get("/config/providers") as? [String: Any] ?? [:]
+        let providers = json["providers"] as? [[String: Any]] ?? []
+        var out: [AgentModel] = []
+        for provider in providers {
+            guard let providerID = provider["id"] as? String,
+                  let models = provider["models"] as? [String: Any]
+            else { continue }
+            let providerName = provider["name"] as? String ?? providerID
+            for (modelID, value) in models {
+                guard let model = value as? [String: Any] else { continue }
+                let capabilities = model["capabilities"] as? [String: Any]
+                guard capabilities?["toolcall"] as? Bool != false else { continue }
+                let input = capabilities?["input"] as? [String: Any]
+                out.append(AgentModel(
+                    providerID: providerID,
+                    modelID: modelID,
+                    name: model["name"] as? String ?? modelID,
+                    provider: providerName,
+                    reasoning: capabilities?["reasoning"] as? Bool,
+                    attachment: (capabilities?["attachment"] as? Bool)
+                        ?? (input?["image"] as? Bool)
+                ))
+            }
+        }
+        out.sort {
+            ($0.provider, $0.name.lowercased()) < ($1.provider, $1.name.lowercased())
+        }
+        let fallback = try? await defaultModel()
+        return (out, fallback.map { "\($0.providerID)/\($0.modelID)" })
+    }
+
     // MARK: - v1: projects / sessions
 
     func projects() async throws -> [Project] {
