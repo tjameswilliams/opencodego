@@ -220,9 +220,23 @@ private final class Connection {
                      e.capabilities = try await adapter.capabilities()
                      return [e] }
         case "projects":
-            answer { var e = Wire.Event(kind: "projects")
-                     e.projects = try await adapter.projects()
-                     return [e] }
+            answer {
+                // Known projects (OpenCode's history, recency-sorted) first,
+                // then repos discovered on disk that OpenCode has never
+                // opened — the launcher's "start somewhere new".
+                var projects = try await adapter.projects()
+                let known = Set(projects.map(\.worktree))
+                let discovered = RepoDiscovery.repos()
+                    .filter { !known.contains($0) }
+                    .sorted()
+                    .map { path in
+                        Project(id: "repo:\(path)", worktree: path, known: false)
+                    }
+                projects.append(contentsOf: discovered)
+                var e = Wire.Event(kind: "projects")
+                e.projects = projects
+                return [e]
+            }
         case "sessions":
             answer { var e = Wire.Event(kind: "sessions")
                      e.sessions = try await adapter.sessions()

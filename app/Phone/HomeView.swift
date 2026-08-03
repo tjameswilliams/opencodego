@@ -42,7 +42,21 @@ struct HomeView: View {
                     Section("Projects") {
                         ForEach(projects) { project in
                             NavigationLink(value: Destination.project(project)) {
-                                Text(project.displayName)
+                                HStack {
+                                    Text(project.displayName)
+                                    if project.known == false {
+                                        // Discovered on disk, never opened
+                                        // with OpenCode — starting a session
+                                        // here is what opens it.
+                                        Spacer()
+                                        Text("new")
+                                            .font(.caption2.smallCaps())
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(.quaternary, in: Capsule())
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
