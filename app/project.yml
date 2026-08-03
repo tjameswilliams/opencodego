@@ -76,15 +76,9 @@ targets:
     resources: [Phone/PrivacyInfo.xcprivacy]
     dependencies:
       - package: GoKit
-    entitlements:
-      path: Phone/Phone.entitlements
-      properties:
-        com.apple.developer.icloud-services: [CloudKit]
-        com.apple.developer.icloud-container-identifiers:
-          - iCloud.com.timwilliams.opencodego
-        # CloudKit-routed pushes (Attention records → APNs). The signing
-        # step swaps development for production in distribution builds.
-        aps-environment: development
+    # Entitlements are hand-maintained rather than generated: the two
+    # files differ only in aps-environment, and xcodegen's `entitlements:`
+    # would override the per-configuration setting below.
     info:
       path: Phone/Info.plist
       properties:
@@ -122,6 +116,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.ios
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_ENTITLEMENTS: Phone/Phone.entitlements
+      configs:
+        # A development APNs entitlement in a store build means push fails
+        # silently against the production gateway. See the file's header.
+        Release:
+          CODE_SIGN_ENTITLEMENTS: Phone/Phone.release.entitlements

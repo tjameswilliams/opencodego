@@ -81,9 +81,16 @@ France also requires a separate declaration for apps distributed there.
 - [ ] Subtitle: "Drive your OpenCode agent from your phone" — the
       compatibility claim belongs here, where it is descriptive.
 - [ ] **Confirm export-compliance answer** (see above).
-- [ ] Flip `aps-environment` to `production` for the release build —
-      `project.yml` currently pins `development`, which is right for
-      TestFlight-from-Xcode but wrong for a store build.
+- [x] **`aps-environment` per configuration** — Debug uses
+      `Phone/Phone.entitlements` (development), Release uses
+      `Phone/Phone.release.entitlements` (production). Verified the build
+      setting resolves correctly per config.
+      **Still to verify at export:** a locally archived build signed with a
+      *development* profile reports `aps-environment: development`
+      regardless, because entitlements are intersected with what the
+      profile grants. The production value only appears once exported with
+      `method: app-store` against a distribution profile — check it there,
+      not in the archive.
 - [ ] Confirm the CloudKit container is deployed to the **Production**
       environment. Development-environment schema does not exist in
       production, so pairing would fail for every real user. This is the
@@ -98,6 +105,24 @@ France also requires a separate declaration for apps distributed there.
       a review-mode build with a canned transcript.
 - [ ] Age rating, category (Developer Tools), and export-compliance
       answers in App Store Connect.
+
+## The real blocker is not paperwork
+
+**Nothing has been verified on a device beyond LAN pairing and a typed
+prompt.** Built but never run against real hardware:
+
+- the hole-punched path — the product's entire "from anywhere" claim
+- push, including approve-from-notification
+- attachments, camera, dictation
+- Plan mode, todos, working-tree review, slash commands
+
+Shipping the headline feature without once confirming it works is the
+kind of thing that produces one-star reviews rather than a rejection,
+which is worse. **The order that makes sense: device test pass →
+TestFlight → submit.** TestFlight is also the cheapest way to find out
+whether the production CloudKit container is actually configured, since
+that failure is invisible until a build runs outside the development
+environment.
 
 ## Not blocking, worth knowing
 
