@@ -39,36 +39,19 @@ struct SessionView: View {
         self.title = title
     }
 
+    /// What to say the agent is doing: the newest part that has an opinion,
+    /// falling back to the honest generic while the first tokens are still
+    /// in flight.
+    private var activity: String {
+        rows.reversed().compactMap(\.activityLabel).first ?? "Working"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                List {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
-                        PartRow(part: part).id(index)
-                    }
-                    if !diffs.isEmpty {
-                        Section("Changes") {
-                            ForEach(diffs, id: \.file) { diff in
-                                HStack {
-                                    Text(diff.file).font(.caption.monospaced())
-                                    Spacer()
-                                    Text("+\(diff.additions ?? 0) −\(diff.deletions ?? 0)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    if let error {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .listStyle(.plain)
-                .onChange(of: rows.count) {
-                    proxy.scrollTo(rows.count - 1, anchor: .bottom)
-                }
-            }
+            Transcript(
+                rows: rows, diffs: diffs, error: error,
+                running: running, activity: activity
+            )
             Composer(
                 input: $input,
                 running: running,
@@ -127,6 +110,10 @@ struct SessionView: View {
         guard !running else { return }
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        // Order matters: stop the recogniser and drop its transcript before
+        // clearing, or its next partial result refills the field.
+        dictation.reset()
+        typedBeforeDictation = ""
         input = ""
         error = nil
         diffs = []
@@ -250,39 +237,69 @@ struct SessionView: View {
     }
 }
 
-/// The prompt bar: type or dictate, send or stop. Extracted from the body
-/// because the type checker gave up on it inline.
-private struct Composer: View {
-    @Binding var input: String
+/// The conversation itself: parts, the turn's diffs, any error, and the
+/// working indicator pinned to the bottom while the agent runs. Its own
+/// view because the type checker gave up on it inline.
+private struct Transcript: View {
+    let rows: [TurnPart]
+    let diffs: [FileDiff]
+    let error: String?
     let running: Bool
-    @ObservedObject var dictation: Dictation
-    let onDictate: () -> Void
-    let onSend: () -> Void
+    let activity: String
 
-    private var empty: Bool {
-        input.trimmingCharacters(in: .whitespaces).isEmpty
-    }
+    private static let indicatorID = "working"
 
     var body: some View {
-        HStack(spacing: 8) {
-            TextField("Ask the agent…", text: $input, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(1 ... 4)
-            if !dictation.unavailable {
-                Button(action: onDictate) {
-                    Image(systemName: dictation.recording ? "mic.fill" : "mic")
-                        .font(.title3)
-                        .foregroundStyle(dictation.recording ? Color.red : Color.accentColor)
+        ScrollViewReader { proxy in
+            List {
+                ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
+                    PartRow(part: part).id(index)
                 }
-                .accessibilityLabel(dictation.recording ? "Stop dictation" : "Dictate")
+                if !diffs.isEmpty {
+                    Section("Changes") {
+                        ForEach(diffs, id: \.file) { diff in
+                            DiffRow(diff: diff)
+                        }
+                    }
+                }
+                if let error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                }
+                if running {
+                    WorkingIndicator(activity: activity)
+                        .id(Self.indicatorID)
+                        .listRowSeparator(.hidden)
+                }
             }
-            Button(action: onSend) {
-                Image(systemName: running ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.title2)
-            }
-            .disabled(!running && empty)
+            .listStyle(.plain)
+            .onChange(of: rows.count) { scroll(proxy) }
+            .onChange(of: running) { scroll(proxy) }
         }
-        .padding()
+    }
+
+    private func scroll(_ proxy: ScrollViewProxy) {
+        withAnimation(.easeOut(duration: 0.2)) {
+            if running {
+                proxy.scrollTo(Self.indicatorID, anchor: .bottom)
+            } else if !rows.isEmpty {
+                proxy.scrollTo(rows.count - 1, anchor: .bottom)
+            }
+        }
+    }
+}
+
+private struct DiffRow: View {
+    let diff: FileDiff
+
+    var body: some View {
+        HStack {
+            Text(diff.file).font(.caption.monospaced())
+            Spacer()
+            Text("+\(diff.additions ?? 0) −\(diff.deletions ?? 0)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

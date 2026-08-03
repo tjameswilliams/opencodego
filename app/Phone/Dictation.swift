@@ -28,6 +28,15 @@ final class Dictation: ObservableObject {
         recording ? stop() : start()
     }
 
+    /// Ends dictation and forgets what was said. Sending a prompt must call
+    /// this: a live recogniser goes on emitting partial results after the
+    /// send, and those updates would repopulate the field the send just
+    /// cleared.
+    func reset() {
+        stop()
+        transcript = ""
+    }
+
     func start() {
         guard !recording else { return }
         error = nil

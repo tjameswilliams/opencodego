@@ -162,6 +162,27 @@ unaffiliated" attribution per upstream's naming request.
   (tjameswilliams/homebrew-tap) or eventually homebrew/cask.
 - Phone: App Store.
 
+### M4.5 — Attachments (roadmap, added 2026-08-03)
+Send photos, screenshots, and files as chat context — the models are
+multimodal and a phone is a camera. Verified feasible: OpenCode's prompt
+takes `FilePartInput` alongside text parts
+(`{type: "file", mime, filename?, url}`), where `url` accepts a data: URI,
+so the phone can inline bytes without the Mac hosting anything.
+Work:
+1. Protocol: `attachments: [Attachment{name, mime, data}]` on the prompt
+   request; Wire already compresses frames over the threshold, and the
+   punched path already reports send progress via acks — reuse Tomte's
+   "Sending your photo… 40%" treatment rather than a spinner.
+2. Phone: PhotosPicker + camera + Files importer, a thumbnail strip in the
+   composer (the "+" button ChatGPT/Claude put left of the field), and
+   downscaling before send — a 12MP original is minutes of upload on
+   cellular for no model benefit. Tomte's `thinned()` shaping is the
+   precedent worth copying.
+3. Mac: map attachments to FilePartInput data: URIs; cap total size and
+   refuse honestly past it rather than hanging.
+Also worth carrying over from Tomte: an attachment cache keyed by id, so
+re-sends over a lossy link don't re-upload payloads the Mac already holds.
+
 ### M5 — Remote desktop client (roadmap, added 2026-08-02)
 Drive the home Mac's OpenCode from another computer — same product, bigger
 screen. The pieces already in place: protocol v1 is client-agnostic, and

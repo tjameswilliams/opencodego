@@ -48,3 +48,4 @@ build/
 dist/*.dmg
 dist/updates/*.dmg
 dist/updates/*.delta
+tools/uiharness/Harness.xcodeproj/
