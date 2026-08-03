@@ -148,6 +148,34 @@ Two sources with different lifetimes:
   again full-width as though the agent had written it. Verified live that
   `message.updated` for a message always precedes its parts.
 
+## Streaming: the tokens are in `message.part.delta`
+
+`message.part.updated` carries **snapshots**, not a token stream. For a
+reasoning part it fires exactly twice — once empty at the start, once
+complete at the end — so a UI built on it shows a blank thinking block
+that snaps to finished text. The tokens are in
+`message.part.delta`: `{sessionID, messageID, partID, field, delta}`,
+where `field == "text"` and `delta` is the increment.
+
+Measured live on 1.18.10, same prompt:
+
+| Model | reasoning deltas | answer deltas |
+|---|---|---|
+| gemini-3.5-flash | 1 (whole thought in one chunk) | 14 |
+| deepseek-v4-flash | **125** (4 → 7 → 9 → 17 → 22 chars…) | 55 |
+
+So how granular thinking looks is a property of the provider, not of this
+app. The adapter accumulates deltas per partID, learns the part's kind
+from the snapshot that precedes them, and re-emits accumulated text.
+
+Two things it must do:
+- **Throttle to ~10/sec.** Each protocol event carries the whole
+  accumulated text, so forwarding every delta is quadratic in bytes on a
+  link where bytes are seconds — and LiveTurns buffers them all for
+  replay. Measured: 50% fewer bytes, still reads as live typing.
+- **Flush on `session.idle`.** The last tokens of a thought must not be
+  the ones the throttle drops.
+
 ## Event catalog (observed on 1.18.10)
 
 Coarse (message-level snapshots, fine for v1):

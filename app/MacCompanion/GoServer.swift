@@ -551,6 +551,36 @@ enum TurnRunner {
             // the prompt appears a second time in the transcript as if the
             // agent had said it.
             var roles: [String: String] = [:]
+            // Text accumulated per part from the delta stream, and each
+            // part's type. Reasoning only ever gets two
+            // `message.part.updated` events — one empty at the start and
+            // one complete at the end — so without the deltas the thinking
+            // block sits blank and then snaps to the finished text.
+            // `message.part.delta` is where the tokens actually are.
+            var partText: [String: String] = [:]
+            var partType: [String: String] = [:]
+            // Deltas arrive per token — 125 of them for one DeepSeek
+            // thinking block, measured. Each protocol event carries the
+            // whole accumulated text, so forwarding every one is quadratic
+            // in bytes on a link where bytes are seconds, and LiveTurns
+            // buffers all of them for replay. Ten a second still reads as
+            // live typing; the flush at idle guarantees nothing is lost.
+            var lastEmit: [String: Date] = [:]
+            let minimumInterval: TimeInterval = 0.1
+
+            func emitPart(_ partID: String, force: Bool) {
+                guard let kind = partType[partID],
+                      kind == "reasoning" || kind == "text",
+                      let text = partText[partID], !text.isEmpty
+                else { return }
+                if !force, let last = lastEmit[partID],
+                   Date().timeIntervalSince(last) < minimumInterval { return }
+                lastEmit[partID] = Date()
+                var e = Wire.Event(kind: "part")
+                e.part = TurnPart(type: kind, id: partID, text: text)
+                e.session = sessionID
+                emit(e)
+            }
 
             for try await event in events {
                 // The invocation itself failed — a rejected command name, a
@@ -577,6 +607,15 @@ enum TurnRunner {
                     // though the agent had written it.
                     if let messageID = part["messageID"] as? String,
                        roles[messageID] == "user" { continue }
+                    // A snapshot is authoritative — it replaces whatever
+                    // the deltas had accumulated, and it is how we learn
+                    // what kind of part this is.
+                    if let partID = part["id"] as? String {
+                        partType[partID] = part["type"] as? String
+                        if let text = part["text"] as? String, !text.isEmpty {
+                            partText[partID] = text
+                        }
+                    }
                     guard let mapped = OpenCodeAdapter.turnPart(from: part, role: "assistant")
                     else { continue }
                     var e = Wire.Event(kind: "part")
@@ -593,6 +632,22 @@ enum TurnRunner {
                     e.permission = mapped
                     e.session = sessionID
                     emit(e)
+                case "message.part.delta":
+                    // `{sessionID, messageID, partID, field, delta}` —
+                    // the actual token stream, for both reasoning and the
+                    // answer.
+                    guard properties["sessionID"] as? String == sessionID,
+                          properties["field"] as? String == "text",
+                          let partID = properties["partID"] as? String,
+                          let delta = properties["delta"] as? String
+                    else { continue }
+                    if let messageID = properties["messageID"] as? String,
+                       roles[messageID] == "user" { continue }
+                    partText[partID, default: ""] += delta
+                    // Until a snapshot has told us the kind, hold the text
+                    // rather than guessing — rendering reasoning as the
+                    // answer would be worse than a beat of delay.
+                    emitPart(partID, force: false)
                 case "question.asked", "question.updated":
                     guard let mapped = OpenCodeAdapter.question(from: properties),
                           mapped.sessionID == nil || mapped.sessionID == sessionID
@@ -607,6 +662,9 @@ enum TurnRunner {
                     return
                 case "session.idle":
                     guard properties["sessionID"] as? String == sessionID else { continue }
+                    // Whatever the throttle held back, send now — the last
+                    // tokens of a thought must not be the ones dropped.
+                    for partID in partText.keys { emitPart(partID, force: true) }
                     var diff = Wire.Event(kind: "diff")
                     diff.diffs = (try? await adapter.turnDiffs(
                         sessionID: sessionID, directory: directory
