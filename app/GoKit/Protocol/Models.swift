@@ -143,6 +143,68 @@ public struct Attachment: Codable, Hashable, Identifiable, Sendable {
     public var byteCount: Int { data.count * 3 / 4 }
 }
 
+/// An agent the session can run as. The important one is `plan`, which
+/// OpenCode describes as "Plan mode. Disallows all edit tools" — the
+/// safest possible mode for someone steering from a phone, and the reason
+/// this is worth surfacing at all.
+public struct AgentInfo: Codable, Hashable, Identifiable, Sendable {
+    public var name: String
+    public var description: String?
+    /// "primary" | "subagent" | "all". Only primary agents are pickable
+    /// for a session.
+    public var mode: String?
+
+    public var id: String { name }
+
+    public init(name: String, description: String? = nil, mode: String? = nil) {
+        self.name = name
+        self.description = description
+        self.mode = mode
+    }
+}
+
+/// One item on the agent's own plan for the turn.
+public struct TodoItem: Codable, Hashable, Identifiable, Sendable {
+    public var id: String
+    public var content: String
+    /// "pending" | "in_progress" | "completed" | "cancelled"
+    public var status: String
+
+    public init(id: String = UUID().uuidString, content: String, status: String) {
+        self.id = id
+        self.content = content
+        self.status = status
+    }
+
+    public var done: Bool { status == "completed" }
+    public var active: Bool { status == "in_progress" }
+    public var cancelled: Bool { status == "cancelled" }
+}
+
+/// The state of the working tree — everything the agent has changed,
+/// accumulated, rather than one turn's worth.
+public struct WorkingChanges: Codable, Hashable, Sendable {
+    public var branch: String?
+    public var defaultBranch: String?
+    public var files: [FileDiff]
+    /// "git" (working tree vs HEAD) or "branch" (vs the default branch —
+    /// what a reviewer would see in a pull request).
+    public var mode: String?
+
+    public init(
+        branch: String? = nil, defaultBranch: String? = nil,
+        files: [FileDiff], mode: String? = nil
+    ) {
+        self.branch = branch
+        self.defaultBranch = defaultBranch
+        self.files = files
+        self.mode = mode
+    }
+
+    public var additions: Int { files.reduce(0) { $0 + ($1.additions ?? 0) } }
+    public var deletions: Int { files.reduce(0) { $0 + ($1.deletions ?? 0) } }
+}
+
 /// A slash command the user's OpenCode offers — built in (`/init`,
 /// `/review`), user-authored in `.opencode/command/*.md`, an MCP prompt, or
 /// a skill.
@@ -258,7 +320,7 @@ public struct QuestionOption: Codable, Hashable, Sendable {
 
 /// One file's worth of change from a turn, as a unified patch — the review
 /// screen's unit.
-public struct FileDiff: Codable, Equatable, Sendable {
+public struct FileDiff: Codable, Hashable, Sendable {
     public var file: String
     public var patch: String?
     public var additions: Int?

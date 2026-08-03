@@ -34,6 +34,9 @@ struct SessionView: View {
     @StateObject private var dictation = Dictation()
     @ObservedObject private var models = ModelStore.shared
     @ObservedObject private var commands = CommandStore.shared
+    @ObservedObject private var agents = AgentStore.shared
+    @State private var todos: [TodoItem] = []
+    @State private var showingChanges = false
     @StateObject private var attachments = PromptAttachments()
     /// What was typed before dictation started, so speech appends to it
     /// rather than eating it.
@@ -62,7 +65,8 @@ struct SessionView: View {
         VStack(spacing: 0) {
             Transcript(
                 rows: rows, diffs: diffs, error: error,
-                running: running, activity: activity, turnStartedAt: turnStartedAt
+                running: running, activity: activity, turnStartedAt: turnStartedAt,
+                todos: todos
             )
             if let matches = paletteMatches {
                 CommandPalette(commands: matches) { command in
@@ -77,6 +81,7 @@ struct SessionView: View {
                 dictation: dictation,
                 attachments: attachments,
                 models: models,
+                agents: agents,
                 onDictate: {
                     if !dictation.recording { typedBeforeDictation = input }
                     dictation.toggle()
@@ -86,6 +91,17 @@ struct SessionView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingChanges = true } label: {
+                    Image(systemName: "arrow.triangle.branch")
+                }
+                .accessibilityLabel("Review changes")
+            }
+        }
+        .sheet(isPresented: $showingChanges) {
+            ChangesView(project: project)
+        }
         .sheet(item: $permission) { request in
             PermissionSheet(request: request) { reply, message in
                 answer(request, reply: reply, message: message)
@@ -113,6 +129,7 @@ struct SessionView: View {
         }
         .task { await models.loadIfNeeded() }
         .task { await commands.loadIfNeeded() }
+        .task { await agents.loadIfNeeded() }
         .animation(.easeOut(duration: 0.15), value: paletteMatches?.count)
         .onChange(of: scenePhase) {
             // Back on screen with a turn unfinished: the socket is dead
@@ -153,6 +170,7 @@ struct SessionView: View {
         Task { @MainActor in input = "" }
         error = nil
         diffs = []
+        todos = []
         // Name the files in the transcript so the turn reads correctly
         // later, when the thumbnails are long gone.
         let names = attachments.items.map(\.name)
@@ -178,6 +196,8 @@ struct SessionView: View {
         // choice the picker offers explicitly.
         request.providerID = models.selected?.providerID
         request.modelID = models.selected?.modelID
+        // Absent means OpenCode's own default (build).
+        request.agent = agents.selected?.name
         let id = UUID().uuidString
         request.turn = id
         turnID = id
@@ -228,6 +248,8 @@ struct SessionView: View {
                 question = event.question
             case "diff":
                 diffs = event.diffs ?? []
+            case "todos":
+                todos = event.todos ?? []
             case "idle", "done":
                 if event.kind == "done" { running = false; turnID = nil }
             case "failed":

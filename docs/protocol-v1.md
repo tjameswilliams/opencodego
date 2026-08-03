@@ -105,6 +105,22 @@ All verified live. The non-streaming ones must NOT go through the turn
 event loop — no `session.idle` ever arrives for them, so the turn would
 hang forever.
 
+### Agents, todos, session management, working tree
+
+| v1 kind | OpenCode |
+|---|---|
+| `agents` | `GET /agent`, filtered to primary + non-hidden. `plan` = "Plan mode. Disallows all edit tools." |
+| prompt `agent` | passed to `prompt_async` / `POST /command` as `agent` |
+| `todos` | `todo.updated` event → `[{content, status}]`; `GET /session/{id}/todo` for a cold read |
+| `session.delete` | `DELETE /session/{id}` |
+| `session.rename` | `PATCH /session/{id} {title}` |
+| `changes` | `GET /vcs` (branch) + `GET /vcs/diff?mode=git\|branch` |
+
+`/vcs/diff` **requires** `mode`: `git` is the working tree against HEAD,
+`branch` is against the default branch — what a reviewer sees in a pull
+request. Its rows are already `FileDiff`-shaped
+(`{file, patch, additions, deletions, status}`). All verified live.
+
 ### `pending` (added for M3 push)
 - v1 request `{kind: "pending", project}` → one event
   `{kind: "pending", permissions: [PermissionRequest]}` from

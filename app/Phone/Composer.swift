@@ -14,6 +14,7 @@ struct Composer: View {
     @ObservedObject var dictation: Dictation
     @ObservedObject var attachments: PromptAttachments
     @ObservedObject var models: ModelStore
+    @ObservedObject var agents: AgentStore
     let onDictate: () -> Void
     let onSend: () -> Void
 
@@ -50,6 +51,9 @@ struct Composer: View {
                 // hiding it made a failed fetch look like a missing
                 // feature, which is exactly how it was first reported.
                 ModelMenu(models: models)
+                if !agents.agents.isEmpty {
+                    AgentMenu(agents: agents)
+                }
                 Spacer(minLength: 4)
                 if !dictation.unavailable {
                     CircleButton(
@@ -213,6 +217,49 @@ struct ModelMenu: View {
                 Text(model.name)
             }
         }
+    }
+}
+
+/// Which agent the turn runs as. Plan mode is the one that matters on a
+/// phone — it cannot edit anything, so it is the only mode that is safe by
+/// construction rather than by vigilance. Shown tinted when active,
+/// because it changes what the whole screen means.
+struct AgentMenu: View {
+    @ObservedObject var agents: AgentStore
+
+    var body: some View {
+        Menu {
+            ForEach(agents.agents) { agent in
+                Button {
+                    agents.selected = agent.name == "build" ? nil : agent
+                } label: {
+                    let chosen = (agents.selected?.name ?? "build") == agent.name
+                    if chosen {
+                        Label(agent.name.capitalized, systemImage: "checkmark")
+                    } else {
+                        Text(agent.name.capitalized)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                if agents.isReadOnly {
+                    Image(systemName: "eye")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                Text(agents.label).lineLimit(1)
+            }
+            .font(.subheadline)
+            .foregroundStyle(agents.isReadOnly ? Color.clay : Color.primary)
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(
+                Capsule().fill(agents.isReadOnly
+                    ? Color.clay.opacity(0.15) : Color.primary.opacity(0.08))
+            )
+        }
+        .tint(.primary)
+        .accessibilityLabel("Agent: \(agents.label)")
     }
 }
 

@@ -24,7 +24,13 @@ looking at the repo itself.
 | Approvals | `/permission`, `/permission/{id}/reply` |
 | Questions | `/question`, `/question/{id}/reply` |
 
-## Real gaps, ranked by what they'd be worth on a phone
+## Closed since this audit (2026-08-03)
+
+Items 1–4 below are now implemented: agents/Plan mode, todos, session
+delete+rename, and working-tree review. They are kept here with their
+reasoning intact, since the reasoning is why they were chosen.
+
+## Gaps as first audited, ranked by what they'd be worth on a phone
 
 ### 1. Agents — and Plan mode especially
 `GET /agent` returns primary agents (`build`, `plan`) and subagents

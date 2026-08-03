@@ -15,6 +15,8 @@ struct HomeView: View {
     /// Debounces typing into one request per pause, so a search doesn't
     /// fire a round trip to the Mac per keystroke.
     @State private var searchTask: Task<Void, Never>?
+    @State private var renaming: Session?
+    @State private var newTitle = ""
 
     var body: some View {
         NavigationStack {
@@ -22,51 +24,11 @@ struct HomeView: View {
                 if let error {
                     Section {
                         Label(error, systemImage: "wifi.exclamationmark")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.inkMuted)
                     }
                 }
-                if !sessions.isEmpty {
-                    Section(search.isEmpty ? "Continue" : "Matching sessions") {
-                        ForEach(sessions) { session in
-                            NavigationLink(value: Destination.session(session)) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.title ?? "Untitled session")
-                                        .lineLimit(1)
-                                    if let directory = session.directory {
-                                        Text(directory.split(separator: "/").last.map(String.init) ?? directory)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                // While searching, projects are noise — the user is looking
-                // for a conversation, not a place to start one.
-                if !projects.isEmpty, search.isEmpty {
-                    Section("Projects") {
-                        ForEach(projects) { project in
-                            NavigationLink(value: Destination.project(project)) {
-                                HStack {
-                                    Text(project.displayName)
-                                    if project.known == false {
-                                        // Discovered on disk, never opened
-                                        // with OpenCode — starting a session
-                                        // here is what opens it.
-                                        Spacer()
-                                        Text("new")
-                                            .font(.caption2.smallCaps())
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(.quaternary, in: Capsule())
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                sessionSection
+                projectSection
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -117,6 +79,14 @@ struct HomeView: View {
             }
             .refreshable { await load() }
             .task { await load() }
+            .alert("Rename session", isPresented: Binding(
+                get: { renaming != nil },
+                set: { if !$0 { renaming = nil } }
+            )) {
+                TextField("Title", text: $newTitle)
+                Button("Cancel", role: .cancel) { renaming = nil }
+                Button("Save") { if let s = renaming { rename(s, to: newTitle) } }
+            }
         }
     }
 
@@ -139,6 +109,102 @@ struct HomeView: View {
             case "projects": projects = event.projects ?? []
             case "failed": error = event.text
             default: break
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var sessionSection: some View {
+        if !sessions.isEmpty {
+            Section(search.isEmpty ? "Continue" : "Matching sessions") {
+                ForEach(sessions) { session in
+                    NavigationLink(value: Destination.session(session)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(session.title ?? "Untitled session")
+                                .lineLimit(1)
+                            if let directory = session.directory {
+                                Text(directory.split(separator: "/").last.map(String.init) ?? directory)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.inkMuted)
+                            }
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) { delete(session) } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button {
+                            renaming = session
+                            newTitle = session.title ?? ""
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+                        .tint(.gray)
+                    }
+                }
+            }
+        }
+    }
+
+    /// While searching, projects are noise — the user is looking for a
+    /// conversation, not a place to start one.
+    @ViewBuilder
+    private var projectSection: some View {
+        if !projects.isEmpty, search.isEmpty {
+            Section("Projects") {
+                ForEach(projects) { project in
+                    NavigationLink(value: Destination.project(project)) {
+                        HStack {
+                            Text(project.displayName)
+                            if project.known == false {
+                                // Discovered on disk, never opened with
+                                // OpenCode — starting a session here is
+                                // what opens it.
+                                Spacer()
+                                Text("new")
+                                    .font(.caption2.smallCaps())
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(.quaternary, in: Capsule())
+                                    .foregroundStyle(Color.inkMuted)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Removed locally first: the list should respond to the swipe, not to
+    /// a round trip. A failure puts it back and says why.
+    private func delete(_ session: Session) {
+        let index = sessions.firstIndex(of: session)
+        sessions.removeAll { $0.id == session.id }
+        var request = Wire.Request(kind: "session.delete")
+        request.session = session.id
+        request.project = session.directory
+        Task {
+            for await event in MacLink().run(request) where event.kind == "failed" {
+                error = event.text
+                if let index { sessions.insert(session, at: min(index, sessions.count)) }
+            }
+        }
+    }
+
+    private func rename(_ session: Session, to title: String) {
+        renaming = nil
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let index = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[index].title = trimmed
+        }
+        var request = Wire.Request(kind: "session.rename")
+        request.session = session.id
+        request.project = session.directory
+        request.title = trimmed
+        Task {
+            for await event in MacLink().run(request) where event.kind == "failed" {
+                error = event.text
             }
         }
     }

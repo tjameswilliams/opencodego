@@ -266,6 +266,36 @@ private final class Connection {
             answer { var e = Wire.Event(kind: "sessions")
                      e.sessions = try await adapter.sessions(search: request.search)
                      return [e] }
+        case "agents":
+            answer {
+                var e = Wire.Event(kind: "agents")
+                e.agents = try await adapter.agents()
+                return [e]
+            }
+        case "changes":
+            answer {
+                guard let directory = request.project else { return [] }
+                var e = Wire.Event(kind: "changes")
+                e.changes = try await adapter.workingChanges(
+                    directory: directory, mode: request.mode ?? "git"
+                )
+                return [e]
+            }
+        case "session.delete":
+            answer {
+                guard let session = request.session, let directory = request.project
+                else { return [] }
+                try await adapter.deleteSession(session, directory: directory)
+                return []
+            }
+        case "session.rename":
+            answer {
+                guard let session = request.session, let directory = request.project,
+                      let title = request.title
+                else { return [] }
+                try await adapter.renameSession(session, directory: directory, title: title)
+                return []
+            }
         case "commands":
             answer {
                 var e = Wire.Event(kind: "commands")
@@ -529,14 +559,14 @@ enum TurnRunner {
                             sessionID: sessionID, directory: directory, command: command,
                             arguments: request.arguments ?? "",
                             providerID: providerID, modelID: modelID,
-                            attachments: attachments
+                            attachments: attachments, agent: request.agent
                         )
                     } else {
                         try await adapter.promptAsync(
                             sessionID: sessionID, directory: directory,
                             text: request.text ?? "",
                             providerID: providerID!, modelID: modelID!,
-                            attachments: attachments
+                            attachments: attachments, agent: request.agent
                         )
                     }
                 } catch {
@@ -648,6 +678,16 @@ enum TurnRunner {
                     // rather than guessing — rendering reasoning as the
                     // answer would be worse than a beat of delay.
                     emitPart(partID, force: false)
+                case "todo.updated":
+                    // The agent's own plan for the turn, as it evolves —
+                    // the clearest possible answer to "what is it doing".
+                    guard properties["sessionID"] as? String == sessionID else { continue }
+                    let raw = properties["todos"] as? [[String: Any]]
+                        ?? properties["todo"] as? [[String: Any]] ?? []
+                    var e = Wire.Event(kind: "todos")
+                    e.todos = OpenCodeAdapter.todos(from: raw)
+                    e.session = sessionID
+                    emit(e)
                 case "question.asked", "question.updated":
                     guard let mapped = OpenCodeAdapter.question(from: properties),
                           mapped.sessionID == nil || mapped.sessionID == sessionID

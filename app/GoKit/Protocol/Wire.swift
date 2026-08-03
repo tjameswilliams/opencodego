@@ -68,6 +68,13 @@ public enum Wire {
         /// permission: what to do instead, on a reject. A denial that can
         /// carry direction is steering rather than a dead end.
         public var message: String?
+        /// prompt: which agent to run as — "plan" disallows edits, which
+        /// is the mode that makes steering from a phone safe.
+        public var agent: String?
+        /// changes: "git" (working tree) or "branch" (vs default branch).
+        public var mode: String?
+        /// session.rename: the new title.
+        public var title: String?
         /// question: which ask this answers.
         public var questionID: String?
         /// question: selected labels per question, in order. A free-text
@@ -123,6 +130,12 @@ public enum Wire {
         public var questions: [QuestionRequest]?
         /// On `commands`: the slash commands this OpenCode offers.
         public var commands: [AgentCommand]?
+        /// On `agents`: what the session can run as.
+        public var agents: [AgentInfo]?
+        /// On `todos`: the agent's plan for this turn, as it evolves.
+        public var todos: [TodoItem]?
+        /// On `changes`: the working tree's accumulated state.
+        public var changes: WorkingChanges?
         /// On `models`: what this Mac's OpenCode is configured to run.
         public var models: [AgentModel]?
         /// On `models`: the one used when the phone doesn't pick.

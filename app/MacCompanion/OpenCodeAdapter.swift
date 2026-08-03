@@ -294,7 +294,8 @@ struct OpenCodeAdapter {
     /// depends on their template syntax.
     func runCommand(
         sessionID: String, directory: String, command: String, arguments: String,
-        providerID: String?, modelID: String?, attachments: [Attachment] = []
+        providerID: String?, modelID: String?, attachments: [Attachment] = [],
+        agent: String? = nil
     ) async throws {
         // OpenCode answers an unregistered command name with a bare 500
         // ("UnknownError", no detail — verified live). Checking the list
@@ -308,6 +309,7 @@ struct OpenCodeAdapter {
         // This endpoint takes the model as one "provider/model" string,
         // unlike prompt_async's object. An adapter's whole job.
         if let providerID, let modelID { body["model"] = "\(providerID)/\(modelID)" }
+        if let agent { body["agent"] = agent }
         if !attachments.isEmpty {
             body["parts"] = attachments.map { attachment in
                 [
@@ -319,6 +321,86 @@ struct OpenCodeAdapter {
             }
         }
         try await post("/session/\(sessionID)/command", directory: directory, body: body)
+    }
+
+    /// Agents a session can run as. Only primary, non-hidden ones —
+    /// subagents are dispatched by the model, and the hidden ones
+    /// (compaction, title, summary) are internal machinery.
+    func agents() async throws -> [AgentInfo] {
+        let list = try await get("/agent") as? [[String: Any]] ?? []
+        return list.compactMap { item in
+            guard let name = item["name"] as? String,
+                  item["mode"] as? String != "subagent",
+                  item["hidden"] as? Bool != true
+            else { return nil }
+            return AgentInfo(
+                name: name,
+                description: item["description"] as? String,
+                mode: item["mode"] as? String
+            )
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    func todos(sessionID: String, directory: String) async throws -> [TodoItem] {
+        let list = try await get("/session/\(sessionID)/todo", directory: directory)
+            as? [[String: Any]] ?? []
+        return Self.todos(from: list)
+    }
+
+    static func todos(from list: [[String: Any]]) -> [TodoItem] {
+        list.enumerated().compactMap { index, item in
+            guard let content = item["content"] as? String else { return nil }
+            return TodoItem(
+                id: item["id"] as? String ?? "todo-\(index)",
+                content: content,
+                status: item["status"] as? String ?? "pending"
+            )
+        }
+    }
+
+    // MARK: - v1: working tree
+
+    /// Everything the agent has changed, accumulated — not one turn's
+    /// worth. `mode: "git"` is the working tree against HEAD; `"branch"`
+    /// is against the default branch, which is what a reviewer would see
+    /// in a pull request.
+    func workingChanges(directory: String, mode: String) async throws -> WorkingChanges {
+        let vcs = try await get("/vcs", directory: directory) as? [String: Any] ?? [:]
+        let list = try await get(
+            "/vcs/diff?mode=\(mode)", directory: directory
+        ) as? [[String: Any]] ?? []
+        let files = list.compactMap { item -> FileDiff? in
+            guard let file = item["file"] as? String else { return nil }
+            return FileDiff(
+                file: file,
+                patch: item["patch"] as? String,
+                additions: item["additions"] as? Int,
+                deletions: item["deletions"] as? Int,
+                status: item["status"] as? String
+            )
+        }
+        return WorkingChanges(
+            branch: vcs["branch"] as? String,
+            defaultBranch: vcs["default_branch"] as? String,
+            files: files,
+            mode: mode
+        )
+    }
+
+    // MARK: - v1: session management
+
+    func deleteSession(_ sessionID: String, directory: String) async throws {
+        try await request(
+            "/session/\(sessionID)", method: "DELETE", directory: directory, body: nil
+        )
+    }
+
+    func renameSession(_ sessionID: String, directory: String, title: String) async throws {
+        try await request(
+            "/session/\(sessionID)", method: "PATCH", directory: directory,
+            body: ["title": title]
+        )
     }
 
     // MARK: - v1: projects / sessions
@@ -378,7 +460,8 @@ struct OpenCodeAdapter {
 
     func promptAsync(
         sessionID: String, directory: String, text: String,
-        providerID: String, modelID: String, attachments: [Attachment] = []
+        providerID: String, modelID: String, attachments: [Attachment] = [],
+        agent: String? = nil
     ) async throws {
         var parts: [[String: Any]] = [["type": "text", "text": text]]
         // OpenCode takes file parts as data: URIs, so the bytes go straight
@@ -391,12 +474,13 @@ struct OpenCodeAdapter {
                 "url": "data:\(attachment.mime);base64,\(attachment.data)",
             ])
         }
+        var body: [String: Any] = [
+            "model": ["providerID": providerID, "modelID": modelID],
+            "parts": parts,
+        ]
+        if let agent { body["agent"] = agent }
         try await post(
-            "/session/\(sessionID)/prompt_async", directory: directory,
-            body: [
-                "model": ["providerID": providerID, "modelID": modelID],
-                "parts": parts,
-            ]
+            "/session/\(sessionID)/prompt_async", directory: directory, body: body
         )
     }
 

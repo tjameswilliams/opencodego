@@ -14,6 +14,7 @@ struct Transcript: View {
     let running: Bool
     let activity: String
     var turnStartedAt: Date = .init()
+    var todos: [TodoItem] = []
 
     private static let indicatorID = "working"
     @ScaledMetric(relativeTo: .body) private var betweenParts: CGFloat = 12
@@ -27,6 +28,12 @@ struct Transcript: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
                         row(at: index, part: part)
+                    }
+                    // The agent's own plan, above the diff: what it set
+                    // out to do, then what it actually changed.
+                    if !todos.isEmpty {
+                        TodoList(todos: todos)
+                            .padding(.top, betweenParts)
                     }
                     if !diffs.isEmpty {
                         ChangeSummary(diffs: diffs)
