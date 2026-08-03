@@ -24,23 +24,37 @@ final class PromptAttachments: ObservableObject {
         var thumbnail: UIImage?
     }
 
-    /// Cap the long side at what vision models actually consume. Bigger is
-    /// upload time spent on pixels the model discards.
-    private static let maxDimension: CGFloat = 1568
-    private static let jpegQuality: CGFloat = 0.8
     /// Matches the Mac's limit, checked here too so the failure lands
     /// before a long upload rather than after it.
     private static let totalLimit = 20 << 20
 
     var isEmpty: Bool { items.isEmpty }
 
-    func add(image: UIImage, name: String = "image.jpg") {
-        let scaled = Self.downscale(image)
-        guard let data = scaled.jpegData(compressionQuality: Self.jpegQuality) else {
-            error = "Couldn't prepare that image."
+    /// Sizing and encoding both live in GoKit/ImageShaping — the same
+    /// conventions Tomte validated: ImageIO thumbnailing (EXIF-correct, no
+    /// full decode), 1024px at 0.7, refuse anything still over 2 MB after.
+    func add(imageData raw: Data, name: String = "image.jpg") {
+        guard let jpeg = ImageShaping.downscaledJPEG(from: raw) else {
+            error = "That file isn't an image this app can read."
             return
         }
-        append(Item(name: name, mime: "image/jpeg", data: data, thumbnail: scaled))
+        guard jpeg.count <= ImageShaping.maxBytes else {
+            error = "That image is too large to send."
+            return
+        }
+        append(Item(
+            name: name, mime: "image/jpeg", data: jpeg, thumbnail: UIImage(data: jpeg)
+        ))
+    }
+
+    /// Camera captures arrive as UIImage rather than file bytes; hand the
+    /// same pipeline a JPEG to work from.
+    func add(image: UIImage, name: String = "photo.jpg") {
+        guard let raw = image.jpegData(compressionQuality: 0.95) else {
+            error = "Couldn't prepare that photo."
+            return
+        }
+        add(imageData: raw, name: name)
     }
 
     func add(fileAt url: URL) {
@@ -54,19 +68,24 @@ final class PromptAttachments: ObservableObject {
         }
         let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
             ?? "application/octet-stream"
-        if mime.hasPrefix("image/"), let image = UIImage(data: data) {
-            add(image: image, name: url.lastPathComponent)
+        if mime.hasPrefix("image/") {
+            add(imageData: data, name: url.lastPathComponent)
             return
         }
+        // Non-images ride as-is: text and PDFs are already compressed
+        // inside the seal (Wire.Squeeze), and re-encoding them would only
+        // lose fidelity the model may need.
         append(Item(name: url.lastPathComponent, mime: mime, data: data, thumbnail: nil))
     }
 
     func load(_ selection: [PhotosPickerItem]) async {
         for item in selection {
-            guard let data = try? await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data)
+            guard let data = try? await item.loadTransferable(type: Data.self)
             else { continue }
-            add(image: image)
+            // The picker's own filename when it has one; the shaping
+            // pipeline transcodes to JPEG either way.
+            add(imageData: data, name: item.supportedContentTypes.first?.preferredFilenameExtension
+                .map { "image.\($0)" } ?? "image.jpg")
         }
     }
 
@@ -97,17 +116,6 @@ final class PromptAttachments: ObservableObject {
         items.append(item)
     }
 
-    private static func downscale(_ image: UIImage) -> UIImage {
-        let longSide = max(image.size.width, image.size.height)
-        guard longSide > maxDimension else { return image }
-        let scale = maxDimension / longSide
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
 }
 
 /// The strip above the field: what's coming along, and a way to change your

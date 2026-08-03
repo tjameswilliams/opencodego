@@ -15,6 +15,10 @@ final class ModelStore: ObservableObject {
     /// the catalogue names it.
     @Published private(set) var defaultID: String?
     @Published private(set) var loading = false
+    /// Why the catalogue is empty, when it is. Shown in the menu rather
+    /// than swallowed — an older Mac companion answers "Unknown request."
+    /// here, and a silent empty menu makes that look like a phone bug.
+    @Published private(set) var error: String?
     @Published var selected: AgentModel? {
         didSet {
             UserDefaults.standard.set(selected?.id, forKey: Self.key)
@@ -54,12 +58,22 @@ final class ModelStore: ObservableObject {
     /// edits OpenCode's config, which is not a phone-session event).
     func loadIfNeeded() async {
         guard models.isEmpty, !loading else { return }
+        await load()
+    }
+
+    /// Unconditional refetch — what the menu's Reload does after a failure.
+    func load() async {
         loading = true
+        error = nil
         defer { loading = false }
         for await event in MacLink().run(Wire.Request(kind: "models")) {
+            if event.kind == "failed" { error = event.text }
             guard event.kind == "models" else { continue }
             models = event.models ?? []
             defaultID = event.defaultModel
+            if models.isEmpty, error == nil {
+                error = "No tool-capable models are configured in OpenCode."
+            }
             // Restore the remembered pick now that names exist to match it
             // against; a model that has since been removed from the config
             // silently falls back rather than failing a prompt later.

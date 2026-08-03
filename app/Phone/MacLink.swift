@@ -57,7 +57,7 @@ final class MacLink {
                     if await self.exchange(
                         over: lan, channelKey: channelKey,
                         request: request, continuation: continuation,
-                        deadline: Self.lanHandshakeTimeout
+                        deadline: Self.lanHandshakeTimeout, constrained: false
                     ) { return }
                     self.discard(lan)
                 }
@@ -67,7 +67,7 @@ final class MacLink {
                     if await self.exchange(
                         over: punched, channelKey: channelKey,
                         request: request, continuation: continuation,
-                        deadline: Self.punchedHandshakeTimeout
+                        deadline: Self.punchedHandshakeTimeout, constrained: true
                     ) { return }
                     self.discard(punched)
                     self.fail("Couldn't start a conversation with your Mac.", continuation)
@@ -164,7 +164,8 @@ final class MacLink {
         channelKey: SymmetricKey,
         request: Wire.Request,
         continuation: AsyncStream<Wire.Event>.Continuation,
-        deadline: TimeInterval
+        deadline: TimeInterval,
+        constrained: Bool
     ) async -> Bool {
         await withCheckedContinuation { decided in
             var settled = false
@@ -175,7 +176,8 @@ final class MacLink {
             }
             self.handshake(
                 over: transport, channelKey: channelKey,
-                request: request, continuation: continuation, decide: decide
+                request: request, continuation: continuation,
+                constrained: constrained, decide: decide
             )
             DispatchQueue.main.asyncAfter(deadline: .now() + deadline) {
                 decide(false)
@@ -188,6 +190,7 @@ final class MacLink {
         channelKey: SymmetricKey,
         request: Wire.Request,
         continuation: AsyncStream<Wire.Event>.Continuation,
+        constrained: Bool,
         decide: @escaping (Bool) -> Void
     ) {
         var framer = LineFramer()
@@ -242,7 +245,12 @@ final class MacLink {
                     // Surface the capabilities to the caller before the
                     // answer, so screens can adapt.
                     continuation.yield(event)
-                    guard let payload = try? JSONEncoder().encode(request) else { return }
+                    // Shaping happens here and not earlier because only now
+                    // is it known which path carries this: images get their
+                    // smaller transit copy on the punched wire, where every
+                    // kilobyte is seconds.
+                    let outgoing = constrained ? request.thinned() : request
+                    guard let payload = try? JSONEncoder().encode(outgoing) else { return }
                     let body = event.compress == true
                         ? Wire.Squeeze.pack(payload) : payload
                     guard let sealed = channel.seal(body) else { return }

@@ -46,9 +46,10 @@ struct Composer: View {
 
             HStack(spacing: 8) {
                 addMenu
-                if !models.models.isEmpty {
-                    ModelMenu(models: models)
-                }
+                // Always present, even before the catalogue arrives:
+                // hiding it made a failed fetch look like a missing
+                // feature, which is exactly how it was first reported.
+                ModelMenu(models: models)
                 Spacer(minLength: 4)
                 if !dictation.unavailable {
                     CircleButton(
@@ -151,6 +152,15 @@ struct ModelMenu: View {
 
     var body: some View {
         Menu {
+            if let error = models.error {
+                Section(error) {
+                    Button {
+                        Task { await models.load() }
+                    } label: {
+                        Label("Try again", systemImage: "arrow.clockwise")
+                    }
+                }
+            }
             Button {
                 models.selected = nil
             } label: {
@@ -176,6 +186,9 @@ struct ModelMenu: View {
             }
         } label: {
             HStack(spacing: 4) {
+                if models.loading, models.models.isEmpty {
+                    ProgressView().controlSize(.mini)
+                }
                 Text(models.label).lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
