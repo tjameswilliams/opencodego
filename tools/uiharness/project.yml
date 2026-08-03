@@ -22,11 +22,14 @@ targets:
       - Harness
       - path: ../../app/Phone/Composer.swift
       - path: ../../app/Phone/WorkingIndicator.swift
+      - path: ../../app/Phone/BrandWordmark.swift
+      - path: ../../app/Phone/DesignTokens.swift
       - path: ../../app/Phone/Dictation.swift
       - path: ../../app/Phone/PromptAttachments.swift
       - path: ../../app/Phone/ModelStore.swift
       - path: ../../app/Phone/MacLink.swift
       - path: ../../app/GoKit/Protocol/Wire.swift
+      - path: ../../app/GoKit/ImageShaping.swift
       - path: ../../app/GoKit/Pairing/Pairing.swift
       - path: ../../app/GoKit/Transport
       - path: ../../app/GoKit/Protocol/Models.swift

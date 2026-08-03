@@ -11,6 +11,8 @@ struct Transcript: View {
     let activity: String
 
     private static let indicatorID = "working"
+    @ScaledMetric(relativeTo: .body) private var betweenParts: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var gutter: CGFloat = 16
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -19,7 +21,7 @@ struct Transcript: View {
                 // between rows, and a ruled transcript reads like a
                 // spreadsheet. Structure here comes from space, alignment,
                 // and weight — never from lines.
-                LazyVStack(alignment: .leading, spacing: Space.betweenParts) {
+                LazyVStack(alignment: .leading, spacing: betweenParts) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
                         PartRow(part: part)
                             .id(index)
@@ -38,8 +40,8 @@ struct Transcript: View {
                             .id(Self.indicatorID)
                     }
                 }
-                .padding(.horizontal, Space.gutter)
-                .padding(.vertical, Space.betweenParts)
+                .padding(.horizontal, gutter)
+                .padding(.vertical, betweenParts)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .onChange(of: rows.count) { scroll(proxy) }

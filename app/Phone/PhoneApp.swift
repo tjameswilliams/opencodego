@@ -60,10 +60,9 @@ struct PairingGate: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Text("OpenCode Go")
-                .font(.largeTitle.bold())
+            BrandWordmark(height: 34, color: .ink)
             Text("Your Mac writes the code. Your phone holds the leash.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.inkMuted)
             PairingPhaseView(session: session)
             Spacer()
         }

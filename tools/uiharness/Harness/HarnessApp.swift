@@ -31,8 +31,17 @@ struct HarnessView: View {
                         Label("read", systemImage: "checkmark.circle")
                             .font(.callout).foregroundStyle(.secondary)
                     }
+                    Section("Wordmark") {
+                        BrandWordmark(height: 15)
+                        BrandWordmark(height: 25)
+                        BrandWordmark(height: 40, sweep: 0.45)
+                    }
                     Section("Working indicator") {
                         WorkingIndicator(activity: "Running a command")
+                        WorkingIndicator(activity: "Reading files",
+                                         since: Date().addingTimeInterval(-25))
+                        WorkingIndicator(activity: "Thinking",
+                                         since: Date().addingTimeInterval(-50))
                     }
                 }
                 .listStyle(.plain)
@@ -54,8 +63,9 @@ struct HarnessView: View {
                     attachments: noFiles, models: models, onDictate: {}, onSend: {}
                 )
             }
-            .navigationTitle("opencodego")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { BrandWordmark(height: 15) } }
             .task {
                 models.mockForHarness()
                 withFiles.add(image: swatch(.systemBlue), name: "screenshot.png")

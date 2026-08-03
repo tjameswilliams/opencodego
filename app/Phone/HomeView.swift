@@ -68,8 +68,12 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("OpenCode Go")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    // 15 rather than 13: five rows of whole-point cells.
+                    BrandWordmark(height: 15, color: .ink)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     // The standing answer to "is my Mac in reach?" — probed
                     // over the punched path, which is the only honest test:
