@@ -545,6 +545,13 @@ enum TurnRunner {
             }
             defer { invocation.cancel() }
 
+            // Which message each part belongs to, and whose it is. The part
+            // events don't carry a role, and the user's own message streams
+            // back through the same channel as the agent's — without this,
+            // the prompt appears a second time in the transcript as if the
+            // agent had said it.
+            var roles: [String: String] = [:]
+
             for try await event in events {
                 // The invocation itself failed — a rejected command name, a
                 // model that doesn't exist. No session event will ever say
@@ -556,10 +563,21 @@ enum TurnRunner {
                 let type = event["type"] as? String ?? ""
                 let properties = event["properties"] as? [String: Any] ?? [:]
                 switch type {
+                case "message.updated":
+                    if let info = properties["info"] as? [String: Any],
+                       let id = info["id"] as? String, let role = info["role"] as? String {
+                        roles[id] = role
+                    }
                 case "message.part.updated":
                     guard let part = properties["part"] as? [String: Any],
-                          part["sessionID"] as? String == sessionID,
-                          let mapped = OpenCodeAdapter.turnPart(from: part, role: "assistant")
+                          part["sessionID"] as? String == sessionID
+                    else { continue }
+                    // The phone already showed what the user typed; echoing
+                    // it back would render it a second time, full-width, as
+                    // though the agent had written it.
+                    if let messageID = part["messageID"] as? String,
+                       roles[messageID] == "user" { continue }
+                    guard let mapped = OpenCodeAdapter.turnPart(from: part, role: "assistant")
                     else { continue }
                     var e = Wire.Event(kind: "part")
                     e.part = mapped

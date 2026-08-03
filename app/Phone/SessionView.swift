@@ -146,6 +146,11 @@ struct SessionView: View {
         dictation.reset()
         typedBeforeDictation = ""
         input = ""
+        // A multi-line TextField holds uncommitted text — the predictive
+        // suggestion sitting in the field — and commits it to the binding
+        // after our button action returns, refilling what we just cleared.
+        // Clearing again on the next tick wins that race.
+        Task { @MainActor in input = "" }
         error = nil
         diffs = []
         // Name the files in the transcript so the turn reads correctly

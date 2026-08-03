@@ -141,6 +141,12 @@ Two sources with different lifetimes:
     `step-start`, `step-finish`, `patch`.
 - Reconnect strategy (LiveTurns on the Mac): replay transcript, then live
   events. Message/part IDs are stable — dedupe on them.
+- **`message.part.updated` carries no role**, and the user's own message
+  streams back through the same channel as the agent's. The adapter builds
+  a messageID→role map from `message.updated` and drops parts belonging to
+  user messages, or the prompt appears twice — once as the user's turn and
+  again full-width as though the agent had written it. Verified live that
+  `message.updated` for a message always precedes its parts.
 
 ## Event catalog (observed on 1.18.10)
 
