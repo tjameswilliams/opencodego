@@ -63,6 +63,22 @@ have already observed.
 - Questions are the same shape: `question.asked`, `GET /question`,
   `POST /question/{requestID}/reply` | `/reject`.
 
+### `pending` (added for M3 push)
+- v1 request `{kind: "pending", project}` → one event
+  `{kind: "pending", permissions: [PermissionRequest]}` from
+  `GET /permission?directory=…`. What a push-woken phone asks first.
+
+## Push (M3, no relay)
+
+Mac writes an `Attention` record (kind, sessionID, directory) to the user's
+private CloudKit DB when a turn emits `permission`/`failed`/`idle` with no
+live sink — i.e. the phone's socket is gone, which is what backgrounding
+does. The phone holds a `CKQuerySubscription` (id `opencodego-attention`)
+whose alert is generic text; the payload carries only the record ID. On tap
+the phone fetches + deletes the record, then asks the Mac for `pending`
+over the authenticated channel. Content never rides a push. The subscribe
+path seeds the record type first (Development-env schema creation).
+
 ### `diff`
 Two sources with different lifetimes:
 - **Live**: `GET /session/{id}/diff` + `session.diff` events — the pending

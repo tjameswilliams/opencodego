@@ -29,6 +29,11 @@ final class LiveTurns {
         var cursor = 0
         var task: Task<Void, Never>?
         var endedAt: Date?
+        /// Where this turn works — what a push-woken phone needs to ask
+        /// the right instance for its pending approvals.
+        var directory: String?
+        /// Learned from the turn's first `status` event.
+        var sessionID: String?
     }
 
     private var runs: [String: Run] = [:]
@@ -40,7 +45,7 @@ final class LiveTurns {
     /// buffers each event and pushes it to whichever sink is current. The
     /// worker signals completion by emitting `done` (or `failed` + `done`).
     func start(
-        _ id: String, sink: TurnSink,
+        _ id: String, directory: String?, sink: TurnSink,
         work: @escaping (_ emit: @escaping (Wire.Event) -> Void) async -> Void
     ) {
         prune()
@@ -52,6 +57,7 @@ final class LiveTurns {
         }
         let run = Run()
         run.sink = sink
+        run.directory = directory
         runs[id] = run
         let emit: (Wire.Event) -> Void = { [weak self, weak run] event in
             guard let self, let run else { return }
@@ -84,11 +90,33 @@ final class LiveTurns {
 
     private func append(_ event: Wire.Event, to run: Run) {
         run.events.append(event)
+        if let session = event.session { run.sessionID = session }
         if event.kind == "done" {
             run.done = true
             run.endedAt = Date()
         }
-        guard let sink = run.sink else { return }
+        guard let sink = run.sink else {
+            // Nobody is listening — the phone's socket died, which is
+            // exactly what backgrounding the app does. The moments that
+            // matter escalate to a push; token-by-token streaming does not.
+            switch event.kind {
+            case "permission":
+                Attention.publish(
+                    kind: "permission", sessionID: run.sessionID, directory: run.directory
+                )
+            case "failed":
+                Attention.publish(
+                    kind: "failed", sessionID: run.sessionID, directory: run.directory
+                )
+            case "idle":
+                Attention.publish(
+                    kind: "done", sessionID: run.sessionID, directory: run.directory
+                )
+            default:
+                break
+            }
+            return
+        }
         // Only push contiguously: a sink mid-replay catches up in attach.
         while run.cursor < run.events.count {
             run.cursor += 1

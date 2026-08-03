@@ -55,6 +55,9 @@ targets:
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.timwilliams.opencodego
+        # CloudKit-routed pushes (Attention records → APNs). The signing
+        # step swaps development for production in distribution builds.
+        aps-environment: development
     info:
       path: Phone/Info.plist
       properties:

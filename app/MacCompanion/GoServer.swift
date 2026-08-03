@@ -233,6 +233,13 @@ private final class Connection {
             serveResume(request)
         case "permission":
             servePermissionReply(request, adapter: adapter)
+        case "pending":
+            answer {
+                guard let directory = request.project else { return [] }
+                var e = Wire.Event(kind: "pending")
+                e.permissions = try await adapter.pendingPermissions(directory: directory)
+                return [e]
+            }
         case "abort":
             answer {
                 guard let session = request.session, let directory = request.project else { return [] }
@@ -284,7 +291,7 @@ private final class Connection {
     /// the socket dies with it.
     private func servePrompt(_ request: Wire.Request, adapter: OpenCodeAdapter) {
         let id = request.turn ?? UUID().uuidString
-        LiveTurns.shared.start(id, sink: self) { emit in
+        LiveTurns.shared.start(id, directory: request.project, sink: self) { emit in
             await TurnRunner.run(request, adapter: adapter, emit: emit)
         }
     }

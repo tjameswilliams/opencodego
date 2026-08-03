@@ -134,10 +134,13 @@ Enable the punched UDP path (already ported): STUN, CloudKit candidate
 publishing, proven-path caching. Phone on cellular drives the Mac at home.
 Add the presence indicator and the Mac-side remote-access pause switch.
 
-### M3 — Push
-CloudKit `CKQuerySubscription` → APNs when a session needs attention
-(permission, question, failure, completion). No content in payloads — the
-phone connects and fetches. Approval directly from the notification.
+### M3 — Push — implemented 2026-08-02, needs device verification
+CloudKit `CKQuerySubscription` → APNs when a session needs attention.
+Built: Attention records (GoKit/Attention.swift) published by LiveTurns
+when an event lands with no live sink; phone subscription + tap →
+ApprovalsView fetching `pending` over Wire. No content in payloads.
+To verify on hardware, together with M2's cellular punch test: background
+the app mid-turn, wait for the approval push, answer from the sheet.
 
 ### M4 — Polish & release
 Face ID gate on approvals, device revocation, multi-Mac pairing

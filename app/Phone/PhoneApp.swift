@@ -3,10 +3,12 @@ import SwiftUI
 @main
 struct PhoneApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    @UIApplicationDelegateAdaptor(PushManager.self) private var push
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(push)
         }
         .onChange(of: scenePhase) {
             // iOS suspended our socket while we were away, and the NAT
@@ -22,6 +24,7 @@ struct PhoneApp: App {
 /// paired one should never see the pairing screen again.
 struct RootView: View {
     @State private var paired = PairingStore.load() != nil
+    @EnvironmentObject private var push: PushManager
 
     var body: some View {
         Group {
@@ -33,6 +36,20 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: PairingStore.changed)) { _ in
             paired = PairingStore.load() != nil
+            if paired { push.enable() }
+        }
+        .onAppear {
+            if paired { push.enable() }
+        }
+        // A tapped push lands here, wherever the user was: the approvals
+        // sheet fetches what's actually blocked and answers it in place.
+        .sheet(isPresented: Binding(
+            get: { push.attention != nil },
+            set: { if !$0 { push.attention = nil } }
+        )) {
+            if let attention = push.attention {
+                ApprovalsView(attention: attention)
+            }
         }
     }
 }

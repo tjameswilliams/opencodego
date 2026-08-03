@@ -35,7 +35,7 @@ public enum Wire {
     /// missing ones decode cleanly across app versions.
     public struct Request: Codable {
         /// "status" | "projects" | "sessions" | "prompt" | "resume" |
-        /// "abort" | "permission" | "transcript"
+        /// "abort" | "permission" | "pending" | "transcript"
         public var kind: String
         /// prompt/resume: the phone-minted turn id, so an answer can outlive
         /// the socket that asked for it (iOS suspends sockets on background;
@@ -95,6 +95,9 @@ public enum Wire {
         public var part: TurnPart?
         /// On `permission`: the agent wants to do something.
         public var permission: PermissionRequest?
+        /// On `pending`: everything currently blocked awaiting an answer —
+        /// what a push-woken phone asks for first.
+        public var permissions: [PermissionRequest]?
         /// On `diff`: what the turn changed.
         public var diffs: [FileDiff]?
         /// On `status` and `part`: which OpenCode session this concerns —
