@@ -9,6 +9,8 @@ struct HomeView: View {
     @State private var sessions: [Session] = []
     @State private var error: String?
     @State private var loading = false
+    /// Nil = unknown/checking, true = a path to the Mac exists right now.
+    @State private var reachable: Bool?
 
     var body: some View {
         NavigationStack {
@@ -47,6 +49,20 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("OpenCode Go")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // The standing answer to "is my Mac in reach?" — probed
+                    // over the punched path, which is the only honest test:
+                    // it proves packets travel, from home or anywhere.
+                    Circle()
+                        .fill(reachable == true ? .green : reachable == false ? .red : .gray)
+                        .frame(width: 10, height: 10)
+                        .accessibilityLabel(
+                            reachable == true ? "Mac connected"
+                                : reachable == false ? "Mac unreachable" : "Checking"
+                        )
+                }
+            }
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {
                 case let .session(session):
@@ -80,6 +96,10 @@ struct HomeView: View {
         loading = true
         defer { loading = false }
         error = nil
+        // Probe alongside the lists, not before them — the lists are their
+        // own proof of reach when they arrive, and a successful probe
+        // leaves a proven punch path for the next request to reuse.
+        Task { reachable = await PunchClient.shared.reachable().isSuccess }
         // Two independent one-shot requests; each failure surfaces once.
         for kind in ["sessions", "projects"] {
             for await event in MacLink().run(Wire.Request(kind: kind)) {
@@ -91,5 +111,12 @@ struct HomeView: View {
                 }
             }
         }
+    }
+}
+
+private extension Result {
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
     }
 }

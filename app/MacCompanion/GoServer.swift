@@ -1,3 +1,4 @@
+import Combine
 import CryptoKit
 import Foundation
 import Network
@@ -15,10 +16,11 @@ import OSLog
 /// traffic is sealed. An unpaired Mac refuses everything — neither being on
 /// the same Wi-Fi nor knowing the address is an identity.
 @MainActor
-final class GoServer {
+final class GoServer: ObservableObject {
     private let logger = Logger(subsystem: "com.timwilliams.opencodego", category: "server")
     private var listener: NWListener?
     private let punch = PunchListener()
+    private var pairingObserver: NSObjectProtocol?
     /// Where the running OpenCode instance is, or nil while it's down —
     /// requests during a restart get an honest transient failure.
     private let adapter: () -> OpenCodeAdapter?
@@ -27,12 +29,44 @@ final class GoServer {
         self.adapter = adapter
     }
 
+    /// The user's kill switch: while paused, the Mac neither advertises nor
+    /// listens on either path — remotely, the companion doesn't exist.
+    @Published private(set) var paused = false
+
+    func setPaused(_ value: Bool) {
+        guard value != paused else { return }
+        paused = value
+        if value {
+            listener?.cancel()
+            listener = nil
+            punch.stop()
+            logger.notice("remote access paused")
+        } else {
+            start()
+        }
+    }
+
     func start() {
+        guard !paused else { return }
         punch.onStream = { [weak self] stream in
             guard let self else { return }
             Connection(stream, adapter: adapter, logger: logger).start()
         }
+        // The punched path needs a pairing to derive its keys from, and
+        // PunchListener.start() bails quietly without one — so re-kick it
+        // whenever pairing changes, not just at launch. (Tomte re-triggered
+        // this from its Devices pane; a menu bar app has no such moment.)
         punch.start()
+        if pairingObserver == nil {
+            pairingObserver = NotificationCenter.default.addObserver(
+                forName: PairingStore.changed, object: nil, queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, !self.paused else { return }
+                    self.punch.start()
+                }
+            }
+        }
         guard listener == nil else { return }
         do {
             let params = NWParameters.tcp

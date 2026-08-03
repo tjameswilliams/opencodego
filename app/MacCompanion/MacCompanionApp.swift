@@ -11,7 +11,7 @@ struct MacCompanionApp: App {
 
     var body: some Scene {
         MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
-            StatusMenu(opencode: opencode, phone: phone)
+            StatusMenu(opencode: opencode, phone: phone, server: server)
                 .onAppear(perform: bootstrap)
         }
 
@@ -44,6 +44,7 @@ struct MacCompanionApp: App {
 struct StatusMenu: View {
     @ObservedObject var opencode: OpenCodeProcess
     @ObservedObject var phone: PhoneLinkMonitor
+    var server: GoServer?
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -67,6 +68,13 @@ struct StatusMenu: View {
             Button(PairingStore.load() == nil ? "Pair iPhone…" : "Devices…") {
                 openWindow(id: "devices")
                 NSApp.activate(ignoringOtherApps: true)
+            }
+            if let server {
+                // The kill switch: paused means the Mac stops advertising
+                // and listening on both paths — not merely refusing.
+                Button(server.paused ? "Resume Remote Access" : "Pause Remote Access") {
+                    server.setPaused(!server.paused)
+                }
             }
             Divider()
             Button("Quit") {

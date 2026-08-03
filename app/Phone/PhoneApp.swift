@@ -2,9 +2,18 @@ import SwiftUI
 
 @main
 struct PhoneApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             RootView()
+        }
+        .onChange(of: scenePhase) {
+            // iOS suspended our socket while we were away, and the NAT
+            // mapping behind the remembered punch endpoint has probably
+            // lapsed with it. Dropping it turns a stale path into a quick
+            // re-verify instead of a mysterious timeout.
+            if scenePhase == .active { PunchClient.shared.invalidate() }
         }
     }
 }
