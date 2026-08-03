@@ -101,6 +101,12 @@ targets:
         NSSpeechRecognitionUsageDescription: >-
           OpenCode Go transcribes your dictated prompts on this device.
           Nothing is sent to Apple or anyone else.
+        # Attaching a photo of a screen, a whiteboard, an error. The image
+        # goes to your own Mac and nowhere else. The photo library needs no
+        # entry — the system picker runs out of process.
+        NSCameraUsageDescription: >-
+          OpenCode Go uses the camera so you can send your agent a photo —
+          a screenshot, a diagram, an error on another screen.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.ios

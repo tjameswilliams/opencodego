@@ -26,6 +26,8 @@
 	<array>
 		<string>_opencodego._tcp</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>OpenCode Go uses the camera so you can send your agent a photo — a screenshot, a diagram, an error on another screen.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>OpenCode Go confirms it's you before approving the agent's commands.</string>
 	<key>NSLocalNetworkUsageDescription</key>

@@ -32,6 +32,24 @@ final class ModelStore: ObservableObject {
         return "Default model"
     }
 
+    #if DEBUG
+    /// Populates a plausible catalogue for tools/uiharness, which has no
+    /// Mac to ask. Debug-only so it can't be reached from a shipped build.
+    func mockForHarness() {
+        models = [
+            AgentModel(providerID: "anthropic", modelID: "claude-opus-5",
+                       name: "Claude Opus 5", provider: "Anthropic",
+                       reasoning: true, attachment: true),
+            AgentModel(providerID: "google", modelID: "gemini-3.5-flash",
+                       name: "Gemini 3.5 Flash", provider: "Google",
+                       reasoning: true, attachment: true),
+            AgentModel(providerID: "lmstudio", modelID: "qwen3-coder-30b",
+                       name: "Qwen3 Coder 30B", provider: "LMStudio"),
+        ]
+        defaultID = "google/gemini-3.5-flash"
+    }
+    #endif
+
     /// Fetches the catalogue once per app run (models change when the user
     /// edits OpenCode's config, which is not a phone-session event).
     func loadIfNeeded() async {

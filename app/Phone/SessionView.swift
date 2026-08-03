@@ -30,7 +30,7 @@ struct SessionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = Dictation()
     @ObservedObject private var models = ModelStore.shared
-    @State private var pickingModel = false
+    @StateObject private var attachments = PromptAttachments()
     /// What was typed before dictation started, so speech appends to it
     /// rather than eating it.
     @State private var typedBeforeDictation = ""
@@ -58,8 +58,8 @@ struct SessionView: View {
                 input: $input,
                 running: running,
                 dictation: dictation,
-                modelLabel: models.models.isEmpty ? nil : models.label,
-                onModel: { pickingModel = true },
+                attachments: attachments,
+                models: models,
                 onDictate: {
                     if !dictation.recording { typedBeforeDictation = input }
                     dictation.toggle()
@@ -88,8 +88,8 @@ struct SessionView: View {
                 }
             }
         }
-        .sheet(isPresented: $pickingModel) {
-            ModelPicker(store: models)
+        .onChange(of: attachments.error) {
+            if let message = attachments.error { error = message }
         }
         .task {
             if session != nil { await loadTranscript() }
@@ -117,7 +117,11 @@ struct SessionView: View {
     private func send() {
         guard !running else { return }
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        // Files alone are a legitimate prompt ("look at this"), but the
+        // model does better with a nudge than with nothing at all.
+        let files = attachments.wireAttachments()
+        guard !text.isEmpty || !files.isEmpty else { return }
+        let prompt = text.isEmpty ? "Take a look at the attached file(s)." : text
         // Order matters: stop the recogniser and drop its transcript before
         // clearing, or its next partial result refills the field.
         dictation.reset()
@@ -125,12 +129,20 @@ struct SessionView: View {
         input = ""
         error = nil
         diffs = []
-        rows.append(TurnPart(type: "user", text: text))
+        // Name the files in the transcript so the turn reads correctly
+        // later, when the thumbnails are long gone.
+        let names = attachments.items.map(\.name)
+        attachments.clear()
+        rows.append(TurnPart(
+            type: "user",
+            text: names.isEmpty ? prompt : prompt + "\n\n📎 " + names.joined(separator: ", ")
+        ))
 
         var request = Wire.Request(kind: "prompt")
         request.project = project
         request.session = session
-        request.text = text
+        request.text = prompt
+        request.attachments = files.isEmpty ? nil : files
         // Absent means "whatever the Mac would have used" — a deliberate
         // choice the picker offers explicitly.
         request.providerID = models.selected?.providerID

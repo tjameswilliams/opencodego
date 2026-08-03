@@ -98,6 +98,32 @@ public struct PermissionRequest: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// A file riding along with a prompt — a screenshot, a photo of a
+/// whiteboard, a log. The bytes travel inline (base64) because the Mac
+/// hosting a URL the model could fetch would mean exposing something, and
+/// not exposing anything is the point of this product.
+///
+/// The phone shrinks images before they get here; see PromptAttachment on
+/// the phone side for why a 12MP original is nobody's friend on cellular.
+public struct Attachment: Codable, Hashable, Identifiable, Sendable {
+    public var id: String
+    public var name: String
+    /// "image/jpeg", "application/pdf", "text/plain"…
+    public var mime: String
+    /// Base64 of the file's bytes.
+    public var data: String
+
+    public init(id: String = UUID().uuidString, name: String, mime: String, data: String) {
+        self.id = id
+        self.name = name
+        self.mime = mime
+        self.data = data
+    }
+
+    /// Roughly what this costs on the wire (base64 is 4 bytes per 3).
+    public var byteCount: Int { data.count * 3 / 4 }
+}
+
 /// One model the user can pick, flattened from OpenCode's provider config.
 public struct AgentModel: Codable, Hashable, Identifiable, Sendable {
     public var providerID: String

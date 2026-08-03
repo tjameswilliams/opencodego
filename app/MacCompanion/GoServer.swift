@@ -419,11 +419,21 @@ enum TurnRunner {
                 modelID = modelID ?? fallback.modelID
             }
 
+            // A turn that can't carry its context is worse than one refused
+            // outright: the model would answer confidently about a file it
+            // never saw.
+            let attachments = request.attachments ?? []
+            let total = attachments.reduce(0) { $0 + $1.byteCount }
+            guard total <= OpenCodeAdapter.attachmentLimit else {
+                fail("Those files are too large to send (limit \(OpenCodeAdapter.attachmentLimit >> 20) MB).")
+                return
+            }
+
             // Subscribe before prompting so nothing falls between.
             let events = adapter.events(directory: directory)
             try await adapter.promptAsync(
                 sessionID: sessionID, directory: directory, text: text,
-                providerID: providerID!, modelID: modelID!
+                providerID: providerID!, modelID: modelID!, attachments: attachments
             )
 
             for try await event in events {

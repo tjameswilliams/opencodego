@@ -192,15 +192,32 @@ struct OpenCodeAdapter {
         return id
     }
 
+    /// Total attachment bytes a single turn may carry. Generous enough for
+    /// a handful of screenshots, small enough that a mistake (a video, a
+    /// whole log directory) fails fast instead of stalling a turn for
+    /// minutes on cellular.
+    static let attachmentLimit = 20 << 20
+
     func promptAsync(
         sessionID: String, directory: String, text: String,
-        providerID: String, modelID: String
+        providerID: String, modelID: String, attachments: [Attachment] = []
     ) async throws {
+        var parts: [[String: Any]] = [["type": "text", "text": text]]
+        // OpenCode takes file parts as data: URIs, so the bytes go straight
+        // through and nothing has to be hosted anywhere.
+        for attachment in attachments {
+            parts.append([
+                "type": "file",
+                "mime": attachment.mime,
+                "filename": attachment.name,
+                "url": "data:\(attachment.mime);base64,\(attachment.data)",
+            ])
+        }
         try await post(
             "/session/\(sessionID)/prompt_async", directory: directory,
             body: [
                 "model": ["providerID": providerID, "modelID": modelID],
-                "parts": [["type": "text", "text": text]],
+                "parts": parts,
             ]
         )
     }

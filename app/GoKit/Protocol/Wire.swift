@@ -51,6 +51,8 @@ public enum Wire {
         public var session: String?
         /// prompt: what the user said.
         public var text: String?
+        /// prompt: files sent as context with this turn.
+        public var attachments: [Attachment]?
         public var providerID: String?
         public var modelID: String?
         /// permission: which pending request this answers.
