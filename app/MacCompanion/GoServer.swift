@@ -485,6 +485,24 @@ enum TurnRunner {
                 return
             }
 
+            // Session operations that finish immediately (share, undo)
+            // never produce a turn, so waiting for session.idle would hang
+            // forever. Answer and be done.
+            if let name = request.command,
+               let builtin = OpenCodeAdapter.Builtin(rawValue: name), !builtin.streams {
+                let note = try await adapter.runBuiltin(
+                    builtin, sessionID: sessionID, directory: directory,
+                    providerID: providerID, modelID: modelID
+                )
+                var e = Wire.Event(kind: "part")
+                e.part = TurnPart(type: "text", id: UUID().uuidString, text: note ?? "Done.")
+                e.session = sessionID
+                emit(e)
+                emit(Wire.Event(kind: "idle"))
+                emit(Wire.Event(kind: "done"))
+                return
+            }
+
             // Subscribe before invoking so nothing falls between.
             let events = adapter.events(directory: directory)
 
@@ -498,7 +516,15 @@ enum TurnRunner {
             let failure = InvocationFailure()
             let invocation = Task {
                 do {
-                    if let command = request.command {
+                    if let name = request.command,
+                       let builtin = OpenCodeAdapter.Builtin(rawValue: name) {
+                        // Streams a turn (summarize) — fire it and let the
+                        // event loop below carry the result.
+                        try await adapter.runBuiltin(
+                            builtin, sessionID: sessionID, directory: directory,
+                            providerID: providerID, modelID: modelID
+                        )
+                    } else if let command = request.command {
                         try await adapter.runCommand(
                             sessionID: sessionID, directory: directory, command: command,
                             arguments: request.arguments ?? "",

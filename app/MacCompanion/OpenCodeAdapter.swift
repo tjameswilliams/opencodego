@@ -179,6 +179,88 @@ struct OpenCodeAdapter {
         return (out, usable)
     }
 
+    /// Session operations OpenCode exposes as endpoints rather than as
+    /// commands.
+    ///
+    /// `/command` lists prompt templates. Things like summarize and share
+    /// aren't templates — they're operations on the session, and OpenCode's
+    /// own TUI implements them client-side against these endpoints. A phone
+    /// user typing `/summarize` has no way to know the difference and
+    /// shouldn't have to, so we offer them in the same palette.
+    enum Builtin: String, CaseIterable {
+        case summarize
+        case share
+        case unshare
+        case undo
+        case redo
+
+        /// True when the operation runs a model and therefore produces a
+        /// turn worth streaming. The rest finish immediately and just need
+        /// a confirmation.
+        var streams: Bool { self == .summarize }
+
+        var describe: String {
+            switch self {
+            case .summarize: return "compact this conversation, keeping the key context"
+            case .share: return "create a shareable link for this session"
+            case .unshare: return "make this session private again"
+            case .undo: return "revert the last exchange and its file changes"
+            case .redo: return "restore what undo reverted"
+            }
+        }
+    }
+
+    /// Run a session operation. Returns a line to show the user for the
+    /// instant ones; nil when the work streams as a normal turn.
+    @discardableResult
+    func runBuiltin(
+        _ builtin: Builtin, sessionID: String, directory: String,
+        providerID: String?, modelID: String?
+    ) async throws -> String? {
+        switch builtin {
+        case .summarize:
+            guard let providerID, let modelID else {
+                throw AdapterError.http(path: "/summarize", body: "No model configured.")
+            }
+            try await post(
+                "/session/\(sessionID)/summarize", directory: directory,
+                body: ["providerID": providerID, "modelID": modelID]
+            )
+            return nil
+        case .share:
+            let json = try await post("/session/\(sessionID)/share", directory: directory)
+                as? [String: Any] ?? [:]
+            let url = (json["share"] as? [String: Any])?["url"] as? String
+            return url.map { "Shared: \($0)" } ?? "Session shared."
+        case .unshare:
+            try await request(
+                "/session/\(sessionID)/share", method: "DELETE",
+                directory: directory, body: nil
+            )
+            return "Session is private again."
+        case .undo:
+            // Revert takes a message id, so find the exchange to undo: the
+            // most recent thing the user said.
+            let messages = try await get(
+                "/session/\(sessionID)/message", directory: directory
+            ) as? [[String: Any]] ?? []
+            let lastUser = messages.reversed().first {
+                ($0["info"] as? [String: Any])?["role"] as? String == "user"
+            }
+            guard let id = (lastUser?["info"] as? [String: Any])?["id"] as? String else {
+                return "Nothing to undo."
+            }
+            try await post(
+                "/session/\(sessionID)/revert", directory: directory,
+                body: ["messageID": id]
+            )
+            return "Reverted the last exchange."
+        case .redo:
+            try await post("/session/\(sessionID)/unrevert", directory: directory)
+            return "Restored."
+        }
+    }
+
     /// The slash commands this OpenCode offers — built-ins, the user's own
     /// `.opencode/command/*.md`, MCP prompts, and skills, all in one list.
     ///
@@ -187,7 +269,7 @@ struct OpenCodeAdapter {
     /// of prompt text the phone can't use and mustn't interpret.
     func commands() async throws -> [AgentCommand] {
         let list = try await get("/command") as? [[String: Any]] ?? []
-        return list.compactMap { item in
+        var out = list.compactMap { item -> AgentCommand? in
             guard let name = item["name"] as? String else { return nil }
             return AgentCommand(
                 name: name,
@@ -197,7 +279,14 @@ struct OpenCodeAdapter {
                 subtask: item["subtask"] as? Bool
             )
         }
-        .sorted { $0.name < $1.name }
+        // Session operations, which OpenCode exposes as endpoints rather
+        // than as commands. Only added when the name is free, so a user
+        // who writes their own `.opencode/command/summarize.md` keeps it.
+        let taken = Set(out.map(\.name))
+        out.append(contentsOf: Builtin.allCases.filter { !taken.contains($0.rawValue) }.map {
+            AgentCommand(name: $0.rawValue, description: $0.describe, source: "session")
+        })
+        return out.sorted { $0.name < $1.name }
     }
 
     /// Run a slash command in a session. We pass the name and the user's
@@ -208,11 +297,11 @@ struct OpenCodeAdapter {
         providerID: String?, modelID: String?, attachments: [Attachment] = []
     ) async throws {
         // OpenCode answers an unregistered command name with a bare 500
-        // ("UnknownError", no detail — verified live against /summarize,
-        // which is a TUI action rather than a command). Checking the list
+        // ("UnknownError", no detail — verified live). Checking the list
         // first turns that into a sentence naming the actual problem.
+        // Session operations are dispatched before we ever get here.
         let known = try await commands()
-        guard known.contains(where: { $0.name == command }) else {
+        guard known.contains(where: { $0.name == command && $0.source != "session" }) else {
             throw AdapterError.unknownCommand(command)
         }
         var body: [String: Any] = ["command": command, "arguments": arguments]

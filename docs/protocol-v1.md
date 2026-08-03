@@ -85,6 +85,26 @@ have already observed.
   parts. Observed live against `/review`; without mapping them a subagent
   command looks like nothing happening.
 
+### Session operations offered as commands
+`GET /command` lists prompt *templates* only. Operations like summarize
+and share are endpoints, and OpenCode's TUI implements them client-side —
+which is why `/summarize` isn't in the list and answers a bare 500 if you
+POST it as a command. The adapter offers them in the same palette
+(`source: "session"`), only when the name isn't already taken by a user's
+own command, and dispatches them to their endpoints:
+
+| Command | Endpoint | Streams |
+|---|---|---|
+| `/summarize` | `POST /session/{id}/summarize {providerID, modelID}` | yes — runs a model |
+| `/share` | `POST /session/{id}/share` → `share.url` | no |
+| `/unshare` | `DELETE /session/{id}/share` | no |
+| `/undo` | `POST /session/{id}/revert {messageID}` (last user message) | no |
+| `/redo` | `POST /session/{id}/unrevert` | no |
+
+All verified live. The non-streaming ones must NOT go through the turn
+event loop — no `session.idle` ever arrives for them, so the turn would
+hang forever.
+
 ### `pending` (added for M3 push)
 - v1 request `{kind: "pending", project}` → one event
   `{kind: "pending", permissions: [PermissionRequest]}` from
