@@ -83,14 +83,24 @@ struct OpenCodeAdapter {
     }
 
     /// The provider/model a prompt falls back to when the phone doesn't
-    /// pick: the configured default of the first provider that has one.
+    /// pick. The user's own configured default (`config.model`, as
+    /// "provider/model") wins — it's the model their TUI uses, which is the
+    /// least surprising choice a remote could make. Only failing that, the
+    /// first provider default in *sorted* order: dictionary order once
+    /// picked whatever it liked, including an image model.
     func defaultModel() async throws -> (providerID: String, modelID: String)? {
+        if let config = try? await get("/config") as? [String: Any],
+           let model = config["model"] as? String {
+            let parts = model.split(separator: "/", maxSplits: 1)
+            if parts.count == 2 { return (String(parts[0]), String(parts[1])) }
+        }
         let json = try await get("/config/providers") as? [String: Any] ?? [:]
         let defaults = json["default"] as? [String: String] ?? [:]
-        let providers = json["providers"] as? [[String: Any]] ?? []
-        for provider in providers {
-            guard let id = provider["id"] as? String, let model = defaults[id] else { continue }
-            return (id, model)
+        let providers = (json["providers"] as? [[String: Any]] ?? [])
+            .compactMap { $0["id"] as? String }
+            .sorted()
+        for id in providers {
+            if let model = defaults[id] { return (id, model) }
         }
         return nil
     }
@@ -168,6 +178,19 @@ struct OpenCodeAdapter {
     func replyPermission(id: String, directory: String, reply: String) async throws {
         try await post(
             "/permission/\(id)/reply", directory: directory, body: ["reply": reply]
+        )
+    }
+
+    // MARK: - v1: question
+
+    func pendingQuestions(directory: String) async throws -> [QuestionRequest] {
+        let list = try await get("/question", directory: directory) as? [[String: Any]] ?? []
+        return list.compactMap(Self.question(from:))
+    }
+
+    func replyQuestion(id: String, directory: String, answers: [[String]]) async throws {
+        try await post(
+            "/question/\(id)/reply", directory: directory, body: ["answers": answers]
         )
     }
 
@@ -255,6 +278,31 @@ struct OpenCodeAdapter {
             patterns: patterns,
             always: body["always"] as? [String]
         )
+    }
+
+    /// A question request, from the poll endpoint or a `question.asked`
+    /// event's properties (some versions nest under "request").
+    static func question(from json: [String: Any]) -> QuestionRequest? {
+        let body = (json["request"] as? [String: Any]) ?? json
+        guard let id = body["id"] as? String,
+              let rawQuestions = body["questions"] as? [[String: Any]]
+        else { return nil }
+        let items = rawQuestions.compactMap { q -> QuestionItem? in
+            guard let question = q["question"] as? String else { return nil }
+            let options = (q["options"] as? [[String: Any]] ?? []).compactMap { o -> QuestionOption? in
+                guard let label = o["label"] as? String else { return nil }
+                return QuestionOption(label: label, description: o["description"] as? String)
+            }
+            return QuestionItem(
+                question: question,
+                header: q["header"] as? String,
+                options: options,
+                multiple: q["multiple"] as? Bool,
+                custom: q["custom"] as? Bool
+            )
+        }
+        guard !items.isEmpty else { return nil }
+        return QuestionRequest(id: id, sessionID: body["sessionID"] as? String, questions: items)
     }
 
     /// An OpenCode message part → the phone's TurnPart, or nil for part

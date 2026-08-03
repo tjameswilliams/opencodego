@@ -238,7 +238,16 @@ private final class Connection {
                 guard let directory = request.project else { return [] }
                 var e = Wire.Event(kind: "pending")
                 e.permissions = try await adapter.pendingPermissions(directory: directory)
+                e.questions = try await adapter.pendingQuestions(directory: directory)
                 return [e]
+            }
+        case "question":
+            answer {
+                guard let id = request.questionID, let directory = request.project,
+                      let answers = request.answers
+                else { return [] }
+                try await adapter.replyQuestion(id: id, directory: directory, answers: answers)
+                return []
             }
         case "abort":
             answer {
@@ -416,6 +425,14 @@ enum TurnRunner {
                     else { continue }
                     var e = Wire.Event(kind: "permission")
                     e.permission = mapped
+                    e.session = sessionID
+                    emit(e)
+                case "question.asked", "question.updated":
+                    guard let mapped = OpenCodeAdapter.question(from: properties),
+                          mapped.sessionID == nil || mapped.sessionID == sessionID
+                    else { continue }
+                    var e = Wire.Event(kind: "question")
+                    e.question = mapped
                     e.session = sessionID
                     emit(e)
                 case "session.error":

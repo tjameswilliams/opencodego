@@ -56,6 +56,11 @@ public enum Wire {
         public var permissionID: String?
         /// permission: "once" | "always" | "reject".
         public var reply: String?
+        /// question: which ask this answers.
+        public var questionID: String?
+        /// question: selected labels per question, in order. A free-text
+        /// answer travels as that question's single "label".
+        public var answers: [[String]]?
 
         public init(kind: String) { self.kind = kind }
     }
@@ -98,6 +103,9 @@ public enum Wire {
         /// On `pending`: everything currently blocked awaiting an answer —
         /// what a push-woken phone asks for first.
         public var permissions: [PermissionRequest]?
+        /// On `question` (one ask, live) and `pending` (all of them).
+        public var question: QuestionRequest?
+        public var questions: [QuestionRequest]?
         /// On `diff`: what the turn changed.
         public var diffs: [FileDiff]?
         /// On `status` and `part`: which OpenCode session this concerns —

@@ -104,6 +104,10 @@ final class LiveTurns {
                 Attention.publish(
                     kind: "permission", sessionID: run.sessionID, directory: run.directory
                 )
+            case "question":
+                Attention.publish(
+                    kind: "question", sessionID: run.sessionID, directory: run.directory
+                )
             case "failed":
                 Attention.publish(
                     kind: "failed", sessionID: run.sessionID, directory: run.directory

@@ -21,6 +21,7 @@ struct SessionView: View {
     @State private var running = false
     @State private var error: String?
     @State private var permission: PermissionRequest?
+    @State private var question: QuestionRequest?
 
     /// The in-flight turn: its phone-minted id and how many of its events
     /// arrived — exactly what `resume` needs.
@@ -69,7 +70,7 @@ struct SessionView: View {
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1 ... 4)
                 Button {
-                    send()
+                    running ? abort() : send()
                 } label: {
                     Image(systemName: running ? "stop.circle.fill" : "arrow.up.circle.fill")
                         .font(.title2)
@@ -83,6 +84,20 @@ struct SessionView: View {
         .sheet(item: $permission) { request in
             PermissionSheet(request: request) { reply in
                 answer(request, reply: reply)
+            }
+        }
+        .sheet(item: $question) { request in
+            QuestionSheet(request: request) { answers in
+                question = nil
+                var wire = Wire.Request(kind: "question")
+                wire.questionID = request.id
+                wire.project = project
+                wire.answers = answers
+                Task {
+                    for await event in MacLink().run(wire) where event.kind == "failed" {
+                        error = event.text
+                    }
+                }
             }
         }
         .task {
@@ -126,6 +141,21 @@ struct SessionView: View {
         Task { await consume(MacLink().run(request)) }
     }
 
+    /// Stops the agent, not just the stream: the Mac tells OpenCode to
+    /// abort the session, and the running turn winds down through its own
+    /// idle → done, which is what resets `running` honestly.
+    private func abort() {
+        guard let session else { running = false; turnID = nil; return }
+        var request = Wire.Request(kind: "abort")
+        request.session = session
+        request.project = project
+        Task {
+            for await event in MacLink().run(request) where event.kind == "failed" {
+                error = event.text
+            }
+        }
+    }
+
     /// One event loop for prompt and resume alike — the Mac replays and
     /// then streams, and replayed events look exactly like live ones.
     private func consume(_ stream: AsyncStream<Wire.Event>) async {
@@ -140,6 +170,8 @@ struct SessionView: View {
                 if let part = event.part { upsert(part) }
             case "permission":
                 permission = event.permission
+            case "question":
+                question = event.question
             case "diff":
                 diffs = event.diffs ?? []
             case "idle", "done":

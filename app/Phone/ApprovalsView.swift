@@ -8,6 +8,8 @@ struct ApprovalsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var pending: [PermissionRequest] = []
+    @State private var questions: [QuestionRequest] = []
+    @State private var answering: QuestionRequest?
     @State private var loading = true
     @State private var error: String?
 
@@ -36,7 +38,27 @@ struct ApprovalsView: View {
                     }
                     .padding(.vertical, 6)
                 }
-                if !loading, pending.isEmpty, error == nil {
+                ForEach(questions) { request in
+                    Button {
+                        answering = request
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label(
+                                request.questions.first?.header ?? "Question",
+                                systemImage: "questionmark.bubble"
+                            )
+                            .font(.headline)
+                            if let text = request.questions.first?.question {
+                                Text(text)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(3)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                if !loading, pending.isEmpty, questions.isEmpty, error == nil {
                     // The honest empty state: someone (or a timeout) already
                     // answered, or the turn finished — nothing is stuck.
                     Label(
@@ -56,6 +78,21 @@ struct ApprovalsView: View {
             }
             .overlay { if loading { ProgressView() } }
             .task { await load() }
+            .sheet(item: $answering) { request in
+                QuestionSheet(request: request) { answers in
+                    answering = nil
+                    questions.removeAll { $0.id == request.id }
+                    var wire = Wire.Request(kind: "question")
+                    wire.questionID = request.id
+                    wire.project = attention.directory
+                    wire.answers = answers
+                    Task {
+                        for await event in MacLink().run(wire) where event.kind == "failed" {
+                            error = event.text
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -66,8 +103,11 @@ struct ApprovalsView: View {
         request.project = directory
         for await event in MacLink().run(request) {
             switch event.kind {
-            case "pending": pending = event.permissions ?? []
-            case "failed": error = event.text
+            case "pending":
+                pending = event.permissions ?? []
+                questions = event.questions ?? []
+            case "failed":
+                error = event.text
             default: break
             }
         }

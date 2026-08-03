@@ -98,6 +98,51 @@ public struct PermissionRequest: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// The agent is asking the user something — distinct from a permission:
+/// there's nothing to allow, just a decision only the user can make.
+public struct QuestionRequest: Codable, Hashable, Identifiable, Sendable {
+    public var id: String
+    public var sessionID: String?
+    public var questions: [QuestionItem]
+
+    public init(id: String, sessionID: String? = nil, questions: [QuestionItem]) {
+        self.id = id
+        self.sessionID = sessionID
+        self.questions = questions
+    }
+}
+
+public struct QuestionItem: Codable, Hashable, Sendable {
+    public var question: String
+    /// Very short label (chip-sized).
+    public var header: String?
+    public var options: [QuestionOption]
+    public var multiple: Bool?
+    /// True when a free-text answer is allowed alongside the options.
+    public var custom: Bool?
+
+    public init(
+        question: String, header: String? = nil, options: [QuestionOption],
+        multiple: Bool? = nil, custom: Bool? = nil
+    ) {
+        self.question = question
+        self.header = header
+        self.options = options
+        self.multiple = multiple
+        self.custom = custom
+    }
+}
+
+public struct QuestionOption: Codable, Hashable, Sendable {
+    public var label: String
+    public var description: String?
+
+    public init(label: String, description: String? = nil) {
+        self.label = label
+        self.description = description
+    }
+}
+
 /// One file's worth of change from a turn, as a unified patch — the review
 /// screen's unit.
 public struct FileDiff: Codable, Equatable, Sendable {
