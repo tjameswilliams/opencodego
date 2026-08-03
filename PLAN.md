@@ -129,10 +129,13 @@ comes along but isn't the acceptance path). Mac companion manages
 - **Exit criterion:** full session driven from the phone on the same Wi-Fi,
   with the OpenCode server never listening on anything but localhost.
 
-### M2 — Anywhere
-Enable the punched UDP path (already ported): STUN, CloudKit candidate
-publishing, proven-path caching. Phone on cellular drives the Mac at home.
-Add the presence indicator and the Mac-side remote-access pause switch.
+### M2 — Anywhere — implemented 2026-08-02, needs cellular verification
+Punched UDP path enabled: punch listener re-kicks on pairing changes,
+phone invalidates its remembered path on foreground, presence dot on Home
+(probed over the punch), Pause/Resume Remote Access in the menu bar.
+To verify on hardware: phone on cellular, pull-to-refresh, prompt, then
+the pause switch. Debug: `log stream --predicate 'subsystem ==
+"com.timwilliams.opencodego" AND category == "punch"'`.
 
 ### M3 — Push — implemented 2026-08-02, needs device verification
 CloudKit `CKQuerySubscription` → APNs when a session needs attention.
