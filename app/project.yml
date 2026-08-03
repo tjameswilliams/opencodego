@@ -1,0 +1,78 @@
+name: OpenCodeGo
+options:
+  bundleIdPrefix: com.timwilliams
+  deploymentTarget:
+    macOS: "14.0"
+    iOS: "17.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: 7NHJT99NX8
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.9"
+targets:
+  MacCompanion:
+    type: application
+    platform: macOS
+    sources: [MacCompanion, GoKit]
+    entitlements:
+      path: MacCompanion/MacCompanion.entitlements
+      properties:
+        # Not sandboxed: the companion spawns the opencode CLI, which reads
+        # the user's real repos and shells out freely. Direct distribution,
+        # like Tomte's Mac half.
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.client: true
+        com.apple.security.network.server: true
+        # Pairing rendezvous: public keys and device names only, in the
+        # user's own private CloudKit database (GoKit/Pairing).
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.timwilliams.opencodego
+    info:
+      path: MacCompanion/Info.plist
+      properties:
+        CFBundleDisplayName: OpenCode Go
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Menu bar only — no Dock icon, no app switcher entry.
+        LSUIElement: true
+        NSLocalNetworkUsageDescription: >-
+          OpenCode Go serves your coding agent to your paired iPhone on your
+          local network.
+        NSBonjourServices: ["_opencodego._tcp"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.mac
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+  Phone:
+    type: application
+    platform: iOS
+    sources: [Phone, GoKit]
+    entitlements:
+      path: Phone/Phone.entitlements
+      properties:
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.timwilliams.opencodego
+    info:
+      path: Phone/Info.plist
+      properties:
+        CFBundleDisplayName: OpenCode Go
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # The app's own crypto is the pairing channel — Curve25519/ChaChaPoly
+        # via CryptoKit — plus HTTPS and CloudKit, all OS-provided: exactly
+        # the export-compliance exemption this key claims.
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        NSLocalNetworkUsageDescription: >-
+          OpenCode Go connects to your Mac on your local network to run your
+          coding agent. Your code never leaves your machines.
+        NSBonjourServices: ["_opencodego._tcp"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.ios
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"

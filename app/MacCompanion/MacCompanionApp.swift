@@ -1,0 +1,98 @@
+import SwiftUI
+
+/// The Mac companion: a menu bar item and nothing else. Its jobs — keep
+/// `opencode serve` alive on localhost, serve the paired phone over the
+/// authenticated channel, and give pairing a window to happen in.
+@main
+struct MacCompanionApp: App {
+    @StateObject private var opencode = OpenCodeProcess()
+    @StateObject private var phone = PhoneLinkMonitor.shared
+    @State private var server: GoServer?
+
+    var body: some Scene {
+        MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
+            StatusMenu(opencode: opencode, phone: phone)
+                .onAppear(perform: bootstrap)
+        }
+
+        Window("Devices", id: "devices") {
+            DevicesWindow()
+        }
+        .windowResizability(.contentSize)
+    }
+
+    private var menuSymbol: String {
+        switch opencode.state {
+        case .running: return "iphone.gen3.radiowaves.left.and.right"
+        case .starting: return "ellipsis.circle"
+        case .stopped, .failed: return "exclamationmark.circle"
+        }
+    }
+
+    private func bootstrap() {
+        guard server == nil else { return }
+        opencode.start()
+        let server = GoServer(adapter: { [weak opencode] in
+            guard case let .running(port, _) = opencode?.state else { return nil }
+            return OpenCodeAdapter(port: port)
+        })
+        server.start()
+        self.server = server
+    }
+}
+
+struct StatusMenu: View {
+    @ObservedObject var opencode: OpenCodeProcess
+    @ObservedObject var phone: PhoneLinkMonitor
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Group {
+            switch opencode.state {
+            case let .running(port, version):
+                Text("OpenCode \(version) · port \(String(port))")
+            case .starting:
+                Text("Starting OpenCode…")
+            case .stopped:
+                Text("OpenCode stopped")
+            case let .failed(message):
+                Text(message)
+            }
+            if let name = phone.connectedName {
+                Text("\(name) connected")
+            } else if PairingStore.load() != nil {
+                Text("Phone not connected")
+            }
+            Divider()
+            Button(PairingStore.load() == nil ? "Pair iPhone…" : "Devices…") {
+                openWindow(id: "devices")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            Divider()
+            Button("Quit") {
+                opencode.stop()
+                NSApp.terminate(nil)
+            }
+        }
+    }
+}
+
+struct DevicesWindow: View {
+    @StateObject private var pairing = PairingSession()
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if let paired = PairingStore.load() {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.green)
+                Text("Paired with \(paired.name)").font(.headline)
+                Button("Unpair", role: .destructive) { pairing.unpair() }
+            } else {
+                PairingPhaseView(session: pairing)
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 460, minHeight: 320)
+    }
+}
