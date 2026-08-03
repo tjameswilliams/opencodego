@@ -6,9 +6,10 @@ import SwiftUI
 /// authenticated channel, and give pairing a window to happen in.
 @main
 struct MacCompanionApp: App {
-    @StateObject private var opencode = OpenCodeProcess()
+    @StateObject private var opencode: OpenCodeProcess
     @StateObject private var phone = PhoneLinkMonitor.shared
-    @State private var server: GoServer?
+    @StateObject private var server: GoServer
+    @State private var started = false
     /// Sparkle drives its own update checks against the appcast; this also
     /// backs the menu's manual "Check for Updates…". The app is distributed
     /// outside the App Store (brew cask / direct dmg), so updating is ours
@@ -16,6 +17,19 @@ struct MacCompanionApp: App {
     private let updater = SPUStandardUpdaterController(
         startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
     )
+
+    @MainActor
+    init() {
+        let opencode = OpenCodeProcess()
+        _opencode = StateObject(wrappedValue: opencode)
+        // Built eagerly rather than in onAppear so the menu can observe its
+        // conflict state from the first frame — a second instance must be
+        // able to say so before the user opens anything.
+        _server = StateObject(wrappedValue: GoServer(adapter: { [weak opencode] in
+            guard case let .running(port, _) = opencode?.state else { return nil }
+            return OpenCodeAdapter(port: port)
+        }))
+    }
 
     var body: some Scene {
         MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
@@ -38,26 +52,27 @@ struct MacCompanionApp: App {
     }
 
     private func bootstrap() {
-        guard server == nil else { return }
+        guard !started else { return }
+        started = true
         opencode.start()
-        let server = GoServer(adapter: { [weak opencode] in
-            guard case let .running(port, _) = opencode?.state else { return nil }
-            return OpenCodeAdapter(port: port)
-        })
         server.start()
-        self.server = server
     }
 }
 
 struct StatusMenu: View {
     @ObservedObject var opencode: OpenCodeProcess
     @ObservedObject var phone: PhoneLinkMonitor
-    var server: GoServer?
+    @ObservedObject var server: GoServer
     var updater: SPUStandardUpdaterController?
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
+            if server.conflict {
+                // The single most confusing state this app can be in: two
+                // copies running, the phone talking to the other one.
+                Text("⚠︎ Another copy of OpenCode Go is running — quit it")
+            }
             switch opencode.state {
             case let .running(port, version):
                 Text("OpenCode \(version) · port \(String(port))")
@@ -78,12 +93,10 @@ struct StatusMenu: View {
                 openWindow(id: "devices")
                 NSApp.activate(ignoringOtherApps: true)
             }
-            if let server {
-                // The kill switch: paused means the Mac stops advertising
-                // and listening on both paths — not merely refusing.
-                Button(server.paused ? "Resume Remote Access" : "Pause Remote Access") {
-                    server.setPaused(!server.paused)
-                }
+            // The kill switch: paused means the Mac stops advertising and
+            // listening on both paths — not merely refusing.
+            Button(server.paused ? "Resume Remote Access" : "Pause Remote Access") {
+                server.setPaused(!server.paused)
             }
             Divider()
             if let updater {

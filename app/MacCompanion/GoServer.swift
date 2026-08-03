@@ -32,6 +32,11 @@ final class GoServer: ObservableObject {
     /// The user's kill switch: while paused, the Mac neither advertises nor
     /// listens on either path — remotely, the companion doesn't exist.
     @Published private(set) var paused = false
+    /// Set when the listener can't take its port — which in practice means
+    /// another copy of this app is already running and holding it. Silence
+    /// here is the worst outcome: the phone reaches the *other* instance,
+    /// and this window looks fine while doing nothing.
+    @Published private(set) var conflict = false
 
     func setPaused(_ value: Bool) {
         guard value != paused else { return }
@@ -85,8 +90,19 @@ final class GoServer: ObservableObject {
                 }
             }
             listener.stateUpdateHandler = { [weak self] state in
-                if case let .failed(error) = state {
-                    self?.logger.error("listener failed: \(error.localizedDescription)")
+                guard let self else { return }
+                switch state {
+                case let .failed(error):
+                    logger.error("listener failed: \(error.localizedDescription)")
+                    // POSIX 48 = address in use: another instance owns the
+                    // port, so this one is a zombie the phone can't reach.
+                    if case let .posix(code) = error, code == .EADDRINUSE {
+                        Task { @MainActor in self.conflict = true }
+                    }
+                case .ready:
+                    Task { @MainActor in self.conflict = false }
+                default:
+                    break
                 }
             }
             listener.start(queue: .main)
@@ -95,6 +111,15 @@ final class GoServer: ObservableObject {
         } catch {
             logger.error("listener setup failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+}
+
+extension Bundle {
+    /// What this companion calls itself when explaining that it's old.
+    static var companionVersion: String {
+        let short = main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) build \(build)"
     }
 }
 
@@ -294,8 +319,16 @@ private final class Connection {
                 return events
             }
         default:
+            // Almost always a phone newer than the Mac app it's talking to
+            // — the companion is a menu bar app people leave running for
+            // weeks, so "rebuilt but not relaunched" is the normal way to
+            // arrive here. Say that, rather than a bare protocol error.
             var e = Wire.Event(kind: "failed")
-            e.text = "Unknown request."
+            e.text = """
+            This Mac's OpenCode Go app doesn't understand "\(request.kind)" \
+            — it's an older version (\(Bundle.companionVersion)). Quit and \
+            reopen OpenCode Go on your Mac.
+            """
             write(e)
             write(Wire.Event(kind: "done"))
         }
