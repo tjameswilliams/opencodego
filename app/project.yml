@@ -49,12 +49,15 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Menu bar only — no Dock icon, no app switcher entry.
         LSUIElement: true
-        # Sparkle: the appcast lives in the repo next to the releases the
-        # dmgs are attached to. SUPublicEDKey is the public half of the
-        # keypair scripts/setup-signing-key.sh puts in the login keychain —
-        # release.sh refuses to build while it's the placeholder.
+        # Sparkle: SUPublicEDKey is the public half of the EdDSA keypair in
+        # the login keychain. Deliberately the SAME key Tomte uses —
+        # Sparkle's own tooling states one signing key covers however many
+        # apps you embed it in, and it reuses an existing keychain item
+        # rather than minting a second. The tradeoff is a shared blast
+        # radius: losing this key would strand updates for both products,
+        # so the keychain item is worth backing up.
         SUFeedURL: https://goforopencode.com/downloads/appcast.xml
-        SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
+        SUPublicEDKey: XRBDz3tt37lMTWp01Ep65tGBHuG/kt2pB2GXyXdoUak=
         SUEnableAutomaticChecks: true
         NSLocalNetworkUsageDescription: >-
           Go for OpenCode serves your coding agent to your paired iPhone on your
