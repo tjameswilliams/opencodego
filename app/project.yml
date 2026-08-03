@@ -10,6 +10,10 @@ settings:
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.9"
 packages:
+  # Everything both apps share, as a real package: unit-testable on its
+  # own, with a deliberate public surface, and ready for a third client.
+  GoKit:
+    path: ../packages/GoKit
   # Auto-update for the direct/brew-distributed Mac app. Pinned exactly;
   # bump deliberately alongside SPARKLE_VERSION in scripts/release.sh.
   Sparkle:
@@ -19,8 +23,9 @@ targets:
   MacCompanion:
     type: application
     platform: macOS
-    sources: [MacCompanion, GoKit]
+    sources: [MacCompanion]
     dependencies:
+      - package: GoKit
       - package: Sparkle
     entitlements:
       path: MacCompanion/MacCompanion.entitlements
@@ -65,7 +70,12 @@ targets:
   Phone:
     type: application
     platform: iOS
-    sources: [Phone, GoKit]
+    sources: [Phone]
+    # Required by App Store Connect since 2024: declares which
+    # "required reason" APIs the app touches and that it collects nothing.
+    resources: [Phone/PrivacyInfo.xcprivacy]
+    dependencies:
+      - package: GoKit
     entitlements:
       path: Phone/Phone.entitlements
       properties:

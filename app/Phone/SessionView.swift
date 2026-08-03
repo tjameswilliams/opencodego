@@ -1,3 +1,4 @@
+import GoKit
 import SwiftUI
 
 /// One conversation with the agent: prompt at the bottom, the turn

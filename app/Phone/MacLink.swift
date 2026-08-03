@@ -1,3 +1,4 @@
+import GoKit
 import CryptoKit
 import Foundation
 import Network

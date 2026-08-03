@@ -57,17 +57,19 @@ same iCloud account).
 
 | Path | What |
 |---|---|
-| `app/GoKit/` | Shared Swift: transport (Bonjour TCP + hole-punched UDP), pairing, protocol v1 |
+| `packages/GoKit/` | Shared Swift package: transport, pairing, protocol v1, policy — unit-tested (`swift test`) |
 | `app/MacCompanion/` | Menu-bar app: OpenCode lifecycle, version-skew adapter, Wire server |
 | `app/Phone/` | SwiftUI iPhone app |
 | `docs/protocol-v1.md` | The phone⇄Mac contract, with the verified OpenCode mapping behind it |
 | `spikes/` | Throwaway validation scripts |
+| `tools/uiharness/` | Renders the real phone views in the simulator without a paired Mac |
 
 The transport and pairing stack is shared with (and battle-tested in)
 [Tomte](https://tomteapp.com), the author's local-AI assistant for Mac + iPhone.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE.md) — use it, read it, change it,
+[PolyForm Noncommercial 1.0.0](LICENSE.md); third-party notices in
+[NOTICE.md](NOTICE.md). — use it, read it, change it,
 share it, for any noncommercial purpose. Commercial use requires a separate
 license; open an issue if that's you.

@@ -1,3 +1,4 @@
+import GoKit
 import Sparkle
 import SwiftUI
 

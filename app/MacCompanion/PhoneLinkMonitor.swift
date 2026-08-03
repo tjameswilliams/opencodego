@@ -1,3 +1,4 @@
+import GoKit
 import Foundation
 
 /// The menu bar's answer to "is the phone connected right now?" — one place,

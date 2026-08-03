@@ -1,3 +1,4 @@
+import GoKit
 import SwiftUI
 
 /// The phone's model choice, and the catalogue it picks from.

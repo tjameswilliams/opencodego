@@ -1,0 +1,15 @@
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Attention.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/ImageShaping.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/MarkdownText.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Pairing/Pairing.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Pairing/PairingViews.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Glyphs.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Models.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/PermissionRisk.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/SlashInput.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Wire.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/Punch.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/PunchTransport.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/Stun.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/UDPSocket.swift
+/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/WireTransport.swift

@@ -1,0 +1,110 @@
+{
+  "": {
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/master.swiftdeps"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Attention.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Attention.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Attention.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Attention~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Attention.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Attention.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/ImageShaping.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/ImageShaping.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/ImageShaping.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/ImageShaping~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/ImageShaping.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/ImageShaping.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/MarkdownText.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/MarkdownText.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/MarkdownText.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/MarkdownText~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/MarkdownText.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/MarkdownText.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Pairing/Pairing.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Pairing.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Pairing.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Pairing~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Pairing.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Pairing.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Pairing/PairingViews.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PairingViews.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PairingViews.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PairingViews~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PairingViews.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PairingViews.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Glyphs.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Glyphs.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Glyphs.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Glyphs~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Glyphs.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Glyphs.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Models.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Models.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Models.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Models.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Models.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/PermissionRisk.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PermissionRisk.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PermissionRisk.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PermissionRisk~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PermissionRisk.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PermissionRisk.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/SlashInput.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/SlashInput.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/SlashInput.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/SlashInput~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/SlashInput.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/SlashInput.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Protocol/Wire.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Wire.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Wire.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Wire~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Wire.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Wire.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/Punch.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Punch.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Punch.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Punch~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Punch.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Punch.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/PunchTransport.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PunchTransport.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PunchTransport.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PunchTransport~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PunchTransport.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/PunchTransport.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/Stun.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Stun.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Stun.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Stun~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Stun.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/Stun.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/UDPSocket.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/UDPSocket.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/UDPSocket.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/UDPSocket~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/UDPSocket.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/UDPSocket.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Sources/GoKit/Transport/WireTransport.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/WireTransport.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/WireTransport.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/WireTransport~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/WireTransport.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKit.build/WireTransport.dia"
+  }
+}

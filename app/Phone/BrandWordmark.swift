@@ -1,3 +1,4 @@
+import GoKit
 import SwiftUI
 
 /// The wordmark, drawn rather than set.
@@ -61,55 +62,5 @@ struct BrandWordmark: View {
         let distance = abs(Double(column) - head)
         guard distance < 3 else { return 0.55 }
         return 0.55 + 0.45 * (1 - distance / 3)
-    }
-}
-
-/// The alphabet: each glyph a 4-wide by 5-tall arrangement of inked cells.
-/// Shared shape vocabulary with `tools/mark/generate.py`, which draws the
-/// app icon from the same grid.
-enum Glyphs {
-    static let rows = 5
-    static let glyphWidth = 4
-    /// Between letters. A space is this plus two.
-    static let gap = 1
-
-    private static let table: [Character: [String]] = [
-        "O": ["####", "#..#", "#..#", "#..#", "####"],
-        "P": ["####", "#..#", "####", "#...", "#..."],
-        "E": ["####", "#...", "####", "#...", "####"],
-        "N": ["#..#", "##.#", "#.##", "#..#", "#..#"],
-        "C": ["####", "#...", "#...", "#...", "####"],
-        "D": ["###.", "#..#", "#..#", "#..#", "###."],
-        "G": ["####", "#...", "#.##", "#..#", "####"],
-    ]
-
-    /// Total width in cells, including inter-letter gaps.
-    static func width(of text: String) -> Int {
-        var total = 0
-        for (index, character) in text.enumerated() {
-            if index > 0 { total += gap }
-            total += character == " " ? gap + 2 : glyphWidth
-        }
-        return total
-    }
-
-    /// Every inked cell as (column, row).
-    static func cells(of text: String) -> [(Int, Int)] {
-        var out: [(Int, Int)] = []
-        var x = 0
-        for (index, character) in text.enumerated() {
-            if index > 0 { x += gap }
-            guard let glyph = table[character] else {
-                x += gap + 2 // space
-                continue
-            }
-            for (row, line) in glyph.enumerated() {
-                for (column, mark) in line.enumerated() where mark == "#" {
-                    out.append((x + column, row))
-                }
-            }
-            x += glyphWidth
-        }
-        return out
     }
 }

@@ -1,0 +1,19 @@
+{
+  "": {
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/master.swiftdeps"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Tests/GoKitTests/PolicyTests.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/PolicyTests.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/PolicyTests.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/PolicyTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/PolicyTests.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/PolicyTests.dia"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/Tests/GoKitTests/WireTests.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/WireTests.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/WireTests.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/WireTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/WireTests.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitTests.build/WireTests.dia"
+  }
+}

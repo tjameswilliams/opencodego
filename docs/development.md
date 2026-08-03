@@ -25,6 +25,18 @@ user at an error. But recovery costs a re-pair, so don't cause it.
 The iOS target is unaffected (simulator builds don't share a keychain with
 device builds), but use `-derivedDataPath` there too out of habit.
 
+## Tests
+
+```sh
+cd packages/GoKit && swift test
+```
+
+The shared code is a real Swift package, so its logic is testable without
+a simulator or a paired Mac. What's covered: framing, sealing, the auth
+handshake's binding, compression, permission-risk policy, slash-command
+parsing, and wordmark geometry. Anything that is *policy* rather than
+plumbing belongs in the package so it can be tested there.
+
 ## Regenerating the Xcode project
 
 `app/OpenCodeGo.xcodeproj` is generated and gitignored:

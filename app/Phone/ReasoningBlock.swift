@@ -1,3 +1,4 @@
+import GoKit
 import SwiftUI
 
 /// The agent's thinking.

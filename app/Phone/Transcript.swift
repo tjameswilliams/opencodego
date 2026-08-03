@@ -1,3 +1,4 @@
+import GoKit
 import SwiftUI
 
 /// The conversation: parts, the turn's diffs, any error, and the working

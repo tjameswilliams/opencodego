@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/master.swiftdeps"
+  },
+  "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.derived/runner.swift": {
+    "dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/runner.d",
+    "object": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/runner.swift.o",
+    "swiftmodule": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/Users/timwilliams/www/projects/opencodego/packages/GoKit/.build/arm64-apple-macosx/debug/GoKitPackageTests.build/runner.dia"
+  }
+}
