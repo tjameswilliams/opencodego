@@ -143,6 +143,51 @@ struct OpenCodeAdapter {
         return (out, fallback.map { "\($0.providerID)/\($0.modelID)" })
     }
 
+    /// The slash commands this OpenCode offers — built-ins, the user's own
+    /// `.opencode/command/*.md`, MCP prompts, and skills, all in one list.
+    ///
+    /// Templates are dropped here deliberately: OpenCode expands them when
+    /// the command runs, so shipping them to the phone would be several KB
+    /// of prompt text the phone can't use and mustn't interpret.
+    func commands() async throws -> [AgentCommand] {
+        let list = try await get("/command") as? [[String: Any]] ?? []
+        return list.compactMap { item in
+            guard let name = item["name"] as? String else { return nil }
+            return AgentCommand(
+                name: name,
+                description: item["description"] as? String,
+                source: item["source"] as? String,
+                hints: item["hints"] as? [String],
+                subtask: item["subtask"] as? Bool
+            )
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    /// Run a slash command in a session. We pass the name and the user's
+    /// arguments; OpenCode does the template expansion, so nothing here
+    /// depends on their template syntax.
+    func runCommand(
+        sessionID: String, directory: String, command: String, arguments: String,
+        providerID: String?, modelID: String?, attachments: [Attachment] = []
+    ) async throws {
+        var body: [String: Any] = ["command": command, "arguments": arguments]
+        // This endpoint takes the model as one "provider/model" string,
+        // unlike prompt_async's object. An adapter's whole job.
+        if let providerID, let modelID { body["model"] = "\(providerID)/\(modelID)" }
+        if !attachments.isEmpty {
+            body["parts"] = attachments.map { attachment in
+                [
+                    "type": "file",
+                    "mime": attachment.mime,
+                    "filename": attachment.name,
+                    "url": "data:\(attachment.mime);base64,\(attachment.data)",
+                ]
+            }
+        }
+        try await post("/session/\(sessionID)/command", directory: directory, body: body)
+    }
+
     // MARK: - v1: projects / sessions
 
     func projects() async throws -> [Project] {
@@ -386,6 +431,14 @@ struct OpenCodeAdapter {
                 type: "tool", id: id,
                 tool: part["tool"] as? String,
                 status: state?["status"] as? String
+            )
+        case "subtask":
+            // A command with `subtask: true` (like /review) runs in a
+            // subagent, and its work arrives as this. Observed live —
+            // without it, a subagent command looks like nothing happening.
+            return TurnPart(
+                type: "tool", id: id, tool: "subagent",
+                status: (part["state"] as? [String: Any])?["status"] as? String
             )
         default:
             // step-start/step-finish/patch and future kinds: nothing the

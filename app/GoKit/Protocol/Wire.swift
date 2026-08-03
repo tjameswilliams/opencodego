@@ -53,6 +53,12 @@ public enum Wire {
         public var text: String?
         /// prompt: files sent as context with this turn.
         public var attachments: [Attachment]?
+        /// prompt: run this slash command instead of sending `text` as a
+        /// plain prompt. OpenCode expands its own template — we send only
+        /// the name and whatever the user typed after it.
+        public var command: String?
+        /// prompt: everything after the command name. Empty is valid.
+        public var arguments: String?
         public var providerID: String?
         public var modelID: String?
         /// permission: which pending request this answers.
@@ -112,6 +118,8 @@ public enum Wire {
         /// On `question` (one ask, live) and `pending` (all of them).
         public var question: QuestionRequest?
         public var questions: [QuestionRequest]?
+        /// On `commands`: the slash commands this OpenCode offers.
+        public var commands: [AgentCommand]?
         /// On `models`: what this Mac's OpenCode is configured to run.
         public var models: [AgentModel]?
         /// On `models`: the one used when the phone doesn't pick.

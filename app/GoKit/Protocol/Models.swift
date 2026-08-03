@@ -124,6 +124,45 @@ public struct Attachment: Codable, Hashable, Identifiable, Sendable {
     public var byteCount: Int { data.count * 3 / 4 }
 }
 
+/// A slash command the user's OpenCode offers — built in (`/init`,
+/// `/review`), user-authored in `.opencode/command/*.md`, an MCP prompt, or
+/// a skill.
+///
+/// Deliberately carries no template. OpenCode expands the template itself
+/// when we invoke the command by name, so the phone never parses one, never
+/// substitutes `$ARGUMENTS`, and never has an opinion about template syntax
+/// — which is exactly the coupling that would break on their next release.
+/// The templates are also enormous (several KB each); shipping them to a
+/// phone would be pointless bytes.
+public struct AgentCommand: Codable, Hashable, Identifiable, Sendable {
+    public var name: String
+    public var description: String?
+    /// "command" | "skill" | "mcp" — worth showing, since a skill behaves
+    /// rather differently from a one-shot command.
+    public var source: String?
+    /// What the command expects after its name, e.g. ["$ARGUMENTS"]. Empty
+    /// means it takes none.
+    public var hints: [String]?
+    /// Runs in a subagent rather than this session.
+    public var subtask: Bool?
+
+    public var id: String { name }
+
+    public init(
+        name: String, description: String? = nil, source: String? = nil,
+        hints: [String]? = nil, subtask: Bool? = nil
+    ) {
+        self.name = name
+        self.description = description
+        self.source = source
+        self.hints = hints
+        self.subtask = subtask
+    }
+
+    /// True when the command wants something typed after it.
+    public var takesArguments: Bool { !(hints ?? []).isEmpty }
+}
+
 /// One model the user can pick, flattened from OpenCode's provider config.
 public struct AgentModel: Codable, Hashable, Identifiable, Sendable {
     public var providerID: String

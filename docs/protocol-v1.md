@@ -63,6 +63,28 @@ have already observed.
 - Questions are the same shape: `question.asked`, `GET /question`,
   `POST /question/{requestID}/reply` | `/reject`.
 
+### `commands` / slash commands
+- v1 request `{kind: "commands"}` → `{kind: "commands", commands: [AgentCommand]}`
+  from `GET /command`. Returns built-ins, the user's own
+  `.opencode/command/*.md`, MCP prompts and skills, each with
+  `{name, description?, agent?, model?, source, template, subtask?, hints}`.
+- **The adapter drops `template`.** OpenCode expands it server-side when the
+  command runs, so the phone never parses a template, never substitutes
+  `$ARGUMENTS`, and has no opinion about template syntax — the coupling that
+  would break on an upstream release. Templates are also multi-KB each.
+- To run one: v1 `prompt` with `{command, arguments}` instead of `text` →
+  `POST /session/{id}/command` body `{command, arguments, model?, agent?,
+  parts?}`. Note `model` here is a **"provider/model" string**, unlike
+  `prompt_async`'s object — an adapter difference, not a phone one.
+- **`POST /command` is synchronous**: it blocks for the whole command
+  (a `/review` runs for minutes), where `prompt_async` returns at once.
+  Verified live. TurnRunner therefore fires the invocation in its own task
+  and starts consuming SSE immediately, or nothing would stream until the
+  command had already finished.
+- Commands with `subtask: true` emit `subtask` message parts, not `tool`
+  parts. Observed live against `/review`; without mapping them a subagent
+  command looks like nothing happening.
+
 ### `pending` (added for M3 push)
 - v1 request `{kind: "pending", project}` → one event
   `{kind: "pending", permissions: [PermissionRequest]}` from

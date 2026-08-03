@@ -266,6 +266,12 @@ private final class Connection {
             answer { var e = Wire.Event(kind: "sessions")
                      e.sessions = try await adapter.sessions(search: request.search)
                      return [e] }
+        case "commands":
+            answer {
+                var e = Wire.Event(kind: "commands")
+                e.commands = try await adapter.commands()
+                return [e]
+            }
         case "models":
             answer {
                 let (models, defaultID) = try await adapter.models()
@@ -408,6 +414,13 @@ extension Connection: TurnSink {
     func deliver(_ event: Wire.Event) { write(event) }
 }
 
+/// Carries an invocation's failure from its own task back to the event
+/// loop. An actor because the two run concurrently by design.
+actor InvocationFailure {
+    private(set) var error: Error?
+    func record(_ error: Error) { self.error = error }
+}
+
 /// Runs one prompt turn against OpenCode: ensure a session, subscribe to its
 /// event stream, fire the prompt, and translate what happens into protocol
 /// v1 events until the session goes idle.
@@ -423,8 +436,16 @@ enum TurnRunner {
             emit(e)
             emit(Wire.Event(kind: "done"))
         }
-        guard let directory = request.project, let text = request.text else {
-            fail("The prompt was missing its project or text.")
+        // A command turn carries a name and arguments instead of prose; a
+        // plain turn carries text. Everything after this point — session,
+        // model, streaming, permissions, diffs — is identical, which is the
+        // reason commands ride the prompt path rather than getting their own.
+        guard let directory = request.project else {
+            fail("The prompt was missing its project.")
+            return
+        }
+        guard request.text != nil || request.command != nil else {
+            fail("The prompt was empty.")
             return
         }
         do {
@@ -462,14 +483,48 @@ enum TurnRunner {
                 return
             }
 
-            // Subscribe before prompting so nothing falls between.
+            // Subscribe before invoking so nothing falls between.
             let events = adapter.events(directory: directory)
-            try await adapter.promptAsync(
-                sessionID: sessionID, directory: directory, text: text,
-                providerID: providerID!, modelID: modelID!, attachments: attachments
-            )
+
+            // The two invocations have opposite timing: prompt_async
+            // returns at once, while POST /command blocks for the whole
+            // command — a `/review` can run for minutes. Awaiting that
+            // before consuming events would hold back every token until
+            // the command had already finished. So the call runs in its
+            // own task and the event loop starts immediately; the task's
+            // failure (a 4xx, a dead server) is picked up below.
+            let failure = InvocationFailure()
+            let invocation = Task {
+                do {
+                    if let command = request.command {
+                        try await adapter.runCommand(
+                            sessionID: sessionID, directory: directory, command: command,
+                            arguments: request.arguments ?? "",
+                            providerID: providerID, modelID: modelID,
+                            attachments: attachments
+                        )
+                    } else {
+                        try await adapter.promptAsync(
+                            sessionID: sessionID, directory: directory,
+                            text: request.text ?? "",
+                            providerID: providerID!, modelID: modelID!,
+                            attachments: attachments
+                        )
+                    }
+                } catch {
+                    await failure.record(error)
+                }
+            }
+            defer { invocation.cancel() }
 
             for try await event in events {
+                // The invocation itself failed — a rejected command name, a
+                // model that doesn't exist. No session event will ever say
+                // so, because the turn never started.
+                if let error = await failure.error {
+                    fail(error.localizedDescription)
+                    return
+                }
                 let type = event["type"] as? String ?? ""
                 let properties = event["properties"] as? [String: Any] ?? [:]
                 switch type {

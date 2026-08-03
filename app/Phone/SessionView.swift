@@ -30,6 +30,7 @@ struct SessionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var dictation = Dictation()
     @ObservedObject private var models = ModelStore.shared
+    @ObservedObject private var commands = CommandStore.shared
     @StateObject private var attachments = PromptAttachments()
     /// What was typed before dictation started, so speech appends to it
     /// rather than eating it.
@@ -48,12 +49,25 @@ struct SessionView: View {
         rows.reversed().compactMap(\.activityLabel).first ?? "Working"
     }
 
+    /// Commands to offer right now, or nil when the user isn't typing one.
+    private var paletteMatches: [AgentCommand]? {
+        guard let query = SlashInput.query(input) else { return nil }
+        return commands.matching(query)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Transcript(
                 rows: rows, diffs: diffs, error: error,
                 running: running, activity: activity
             )
+            if let matches = paletteMatches, !matches.isEmpty {
+                CommandPalette(commands: matches) { command in
+                    // Leave a trailing space when the command wants
+                    // arguments, so the caret is where typing continues.
+                    input = "/\(command.name)" + (command.takesArguments ? " " : "")
+                }
+            }
             Composer(
                 input: $input,
                 running: running,
@@ -95,6 +109,8 @@ struct SessionView: View {
             if session != nil { await loadTranscript() }
         }
         .task { await models.loadIfNeeded() }
+        .task { await commands.loadIfNeeded() }
+        .animation(.easeOut(duration: 0.15), value: paletteMatches?.count)
         .onChange(of: scenePhase) {
             // Back on screen with a turn unfinished: the socket is dead
             // (iOS killed it), the Mac's work isn't. Pick the turn back up.
@@ -141,8 +157,15 @@ struct SessionView: View {
         var request = Wire.Request(kind: "prompt")
         request.project = project
         request.session = session
-        request.text = prompt
         request.attachments = files.isEmpty ? nil : files
+        if let slash = SlashInput.parse(prompt) {
+            // The Mac invokes the command by name; OpenCode expands its own
+            // template. Nothing here knows what the command actually says.
+            request.command = slash.name
+            request.arguments = slash.arguments
+        } else {
+            request.text = prompt
+        }
         // Absent means "whatever the Mac would have used" — a deliberate
         // choice the picker offers explicitly.
         request.providerID = models.selected?.providerID
