@@ -49,3 +49,10 @@ dist/*.dmg
 dist/updates/*.dmg
 dist/updates/*.delta
 tools/uiharness/Harness.xcodeproj/
+
+# SwiftPM build state. .swiftpm in particular must not exist in a package
+# an Xcode project references by path: Xcode tries to open .swiftpm/xcode
+# as a project and fails with "Couldn't load project at …".
+.build/
+.swiftpm/
+Package.resolved
