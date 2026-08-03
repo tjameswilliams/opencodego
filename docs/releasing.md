@@ -29,20 +29,34 @@ Tomte runs.
    Sparkle updates"); `generate_keys -x <file>` exports it if you want an
    offline copy.
 
-3. **Tap repo**: create `tjameswilliams/homebrew-tap` with a `Casks/`
-   directory. `packaging/opencodego.rb` is copied there on each release,
-   which is what `brew install --cask tjameswilliams/tap/opencodego` reads.
-   The cask downloads the same artefact Sparkle updates from, so a brew
-   install and an in-app update can never disagree.
+3. **Tap repo** — ✅ done. `tjameswilliams/homebrew-tap` already existed
+   for the ai-imessage formulae, so `Casks/opencodego.rb` was added
+   alongside them rather than replacing anything.
+   `packaging/opencodego.rb` is copied there on each release, which is what
+   `brew install --cask tjameswilliams/tap/opencodego` reads. The cask
+   downloads the same artefact Sparkle updates from, so a brew install and
+   an in-app update can never disagree.
 
 ## Each release
 
 ```sh
 scripts/release.sh 1.0                 # archive, sign, notarize, dmg, appcast
 website/scripts/deploy.sh              # site + dmg + appcast → S3/CloudFront
-# then stamp packaging/opencodego.rb with the printed sha256 and copy it to
-# the tap repo: tjameswilliams/homebrew-tap → Casks/opencodego.rb
+# then stamp packaging/opencodego.rb with the printed version and sha256 and
+# copy it to the tap: tjameswilliams/homebrew-tap → Casks/opencodego.rb
+brew audit --cask --online tjameswilliams/tap/opencodego
 ```
+
+Hash the **served** dmg, not the local one, before trusting the stamp —
+they should match, and if they don't the upload is what users get.
+
+Run the audit every time. It is what caught the cask pointing at the
+unversioned `downloads/GoForOpenCode.dmg` while pinning a sha256: that
+file is overwritten by each deploy, so shipping it that way would have
+broken `brew install` for 1.0 the moment 1.1 was uploaded. The cask now
+uses `OpenCodeGo-#{version}.dmg`, which `deploy.sh` uploads without
+`--delete` and therefore keeps forever. The website's download button
+still points at the unversioned URL — that one is meant to float.
 
 `release.sh` alone (with `--skip-notarize`) is fine for a local smoke test;
 never publish an un-notarized dmg — Gatekeeper will refuse it on any Mac
