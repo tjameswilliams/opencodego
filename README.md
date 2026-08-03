@@ -69,7 +69,7 @@ The transport and pairing stack is shared with (and battle-tested in)
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE.md); third-party notices in
-[NOTICE.md](NOTICE.md). — use it, read it, change it,
+[PolyForm Noncommercial 1.0.0](LICENSE.md) — use it, read it, change it,
 share it, for any noncommercial purpose. Commercial use requires a separate
-license; open an issue if that's you.
+license; open an issue if that's you. Third-party notices are in
+[NOTICE.md](NOTICE.md).
