@@ -8,8 +8,8 @@
 # auto_updates true tells brew this app updates itself (via Sparkle), so
 # `brew upgrade` leaves it alone rather than fighting the in-app updater.
 cask "opencodego" do
-  version "0.0.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "1.0"
+  sha256 "d358e4aef95d4ba7f87d3dfca08fc5ce593d579f766a2e6ef85af8037826f214"
 
   url "https://goforopencode.com/downloads/GoForOpenCode.dmg"
   name "Go for OpenCode"
