@@ -123,6 +123,20 @@ enum PairingKeyStore {
         var out: CFTypeRef?
         let status = SecItemCopyMatching(q as CFDictionary, &out)
         if status == errSecItemNotFound { return nil }
+        // -25293: the item exists but this binary may not read it. On macOS
+        // that means the keychain ACL was written by a differently-signed
+        // build of this app — a re-sign, a move, an unsigned local build.
+        //
+        // An unreadable private key is a dead pairing by definition: the
+        // channel key can't be derived, so nothing can authenticate with it
+        // ever again. Holding onto it would leave the user stuck at an
+        // error with no way forward, including through the re-pair that
+        // would otherwise fix everything. So drop it and mint a fresh one;
+        // the peer's records are rewritten by the next pairing anyway.
+        if status == errSecAuthFailed || status == errSecInteractionNotAllowed {
+            SecItemDelete(query(tag: tag) as CFDictionary)
+            return nil
+        }
         guard status == errSecSuccess else { throw PairingError.keychain(status) }
         return out as? Data
     }
@@ -131,9 +145,24 @@ enum PairingKeyStore {
         var q = query(tag: tag)
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        let status = SecItemAdd(q as CFDictionary, nil)
-        guard status == errSecSuccess || status == errSecDuplicateItem else {
+        var status = SecItemAdd(q as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            // A leftover we just failed to read, or a partial write. The
+            // add is the authority here, so replace rather than keep.
+            SecItemDelete(query(tag: tag) as CFDictionary)
+            status = SecItemAdd(q as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else {
             throw PairingError.keychain(status)
+        }
+    }
+
+    /// Forget this device's key material entirely, so the next pairing
+    /// starts from new keys. Used by unpair — a re-pair that reuses a key
+    /// the peer has already rejected is not a fresh start.
+    static func reset() {
+        for tag in ["pairing.agreement", "pairing.signing"] {
+            SecItemDelete(query(tag: tag) as CFDictionary)
         }
     }
 }
@@ -387,6 +416,9 @@ public final class PairingSession: ObservableObject {
     /// sides can start over.
     public func unpair() {
         PairingStore.clear()
+        // Key material goes too. Leaving it behind is what turns "unpair
+        // and try again" into a re-pair that still can't read its own key.
+        PairingKeyStore.reset()
         stop()
         Task { await cloud.reset() }
     }
