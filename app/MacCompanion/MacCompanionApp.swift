@@ -99,20 +99,54 @@ struct StatusMenu: View {
 
 struct DevicesWindow: View {
     @StateObject private var pairing = PairingSession()
+    @StateObject private var phone = PhoneLinkMonitor.shared
+    @State private var paired = PairingStore.load()
+    @State private var confirmingRevoke = false
 
     var body: some View {
         VStack(spacing: 16) {
-            if let paired = PairingStore.load() {
-                Image(systemName: "checkmark.seal.fill")
+            if let paired {
+                Image(systemName: "iphone.gen3")
                     .font(.largeTitle)
-                    .foregroundStyle(.green)
-                Text("Paired with \(paired.name)").font(.headline)
-                Button("Unpair", role: .destructive) { pairing.unpair() }
+                    .foregroundStyle(.tint)
+                Text(paired.name).font(.headline)
+                Group {
+                    if let name = phone.connectedName {
+                        Label("\(name) connected now", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Paired \(paired.pairedAt.formatted(date: .abbreviated, time: .shortened))")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.callout)
+
+                Text("Revoking removes this Mac's trust in that iPhone. It can no longer connect, see your projects, or approve anything — and the rendezvous records are wiped so a future pairing starts clean.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+
+                Button("Revoke This Device", role: .destructive) { confirmingRevoke = true }
+                    .confirmationDialog(
+                        "Revoke \(paired.name)?",
+                        isPresented: $confirmingRevoke, titleVisibility: .visible
+                    ) {
+                        Button("Revoke", role: .destructive) {
+                            pairing.unpair()
+                            self.paired = nil
+                        }
+                    } message: {
+                        Text("You'll need to pair again from both devices to reconnect.")
+                    }
             } else {
                 PairingPhaseView(session: pairing)
             }
         }
         .padding(24)
-        .frame(minWidth: 460, minHeight: 320)
+        .frame(minWidth: 460, minHeight: 340)
+        .onReceive(NotificationCenter.default.publisher(for: PairingStore.changed)) { _ in
+            paired = PairingStore.load()
+        }
     }
 }

@@ -11,6 +11,10 @@ struct HomeView: View {
     @State private var loading = false
     /// Nil = unknown/checking, true = a path to the Mac exists right now.
     @State private var reachable: Bool?
+    @State private var search = ""
+    /// Debounces typing into one request per pause, so a search doesn't
+    /// fire a round trip to the Mac per keystroke.
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -22,7 +26,7 @@ struct HomeView: View {
                     }
                 }
                 if !sessions.isEmpty {
-                    Section("Continue") {
+                    Section(search.isEmpty ? "Continue" : "Matching sessions") {
                         ForEach(sessions) { session in
                             NavigationLink(value: Destination.session(session)) {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -38,7 +42,9 @@ struct HomeView: View {
                         }
                     }
                 }
-                if !projects.isEmpty {
+                // While searching, projects are noise — the user is looking
+                // for a conversation, not a place to start one.
+                if !projects.isEmpty, search.isEmpty {
                     Section("Projects") {
                         ForEach(projects) { project in
                             NavigationLink(value: Destination.project(project)) {
@@ -96,6 +102,15 @@ struct HomeView: View {
                     ProgressView("Reaching your Mac…")
                 }
             }
+            .searchable(text: $search, prompt: "Search sessions")
+            .onChange(of: search) {
+                searchTask?.cancel()
+                searchTask = Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    await loadSessions()
+                }
+            }
             .refreshable { await load() }
             .task { await load() }
         }
@@ -114,15 +129,26 @@ struct HomeView: View {
         // own proof of reach when they arrive, and a successful probe
         // leaves a proven punch path for the next request to reuse.
         Task { reachable = await PunchClient.shared.reachable().isSuccess }
-        // Two independent one-shot requests; each failure surfaces once.
-        for kind in ["sessions", "projects"] {
-            for await event in MacLink().run(Wire.Request(kind: kind)) {
-                switch event.kind {
-                case "sessions": sessions = event.sessions ?? []
-                case "projects": projects = event.projects ?? []
-                case "failed": error = event.text
-                default: break
-                }
+        await loadSessions()
+        for await event in MacLink().run(Wire.Request(kind: "projects")) {
+            switch event.kind {
+            case "projects": projects = event.projects ?? []
+            case "failed": error = event.text
+            default: break
+            }
+        }
+    }
+
+    /// Sessions alone — what a search re-runs without disturbing the
+    /// project list or the presence probe.
+    private func loadSessions() async {
+        var request = Wire.Request(kind: "sessions")
+        request.search = search.isEmpty ? nil : search
+        for await event in MacLink().run(request) {
+            switch event.kind {
+            case "sessions": sessions = event.sessions ?? []
+            case "failed": error = event.text
+            default: break
             }
         }
     }

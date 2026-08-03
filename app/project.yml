@@ -58,6 +58,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
   Phone:
@@ -91,9 +93,19 @@ targets:
         NSFaceIDUsageDescription: >-
           OpenCode Go confirms it's you before approving the agent's
           commands.
+        # Dictating a prompt. Recognition is pinned on-device (see
+        # Dictation.swift) — the audio never leaves the phone.
+        NSMicrophoneUsageDescription: >-
+          OpenCode Go uses the microphone so you can dictate prompts to your
+          coding agent.
+        NSSpeechRecognitionUsageDescription: >-
+          OpenCode Go transcribes your dictated prompts on this device.
+          Nothing is sent to Apple or anyone else.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
         TARGETED_DEVICE_FAMILY: "1"

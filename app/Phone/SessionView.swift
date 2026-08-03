@@ -28,6 +28,10 @@ struct SessionView: View {
     @State private var turnID: String?
     @State private var cursor = 0
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var dictation = Dictation()
+    /// What was typed before dictation started, so speech appends to it
+    /// rather than eating it.
+    @State private var typedBeforeDictation = ""
 
     init(project: String, session: String?, title: String) {
         self.project = project
@@ -65,19 +69,16 @@ struct SessionView: View {
                     proxy.scrollTo(rows.count - 1, anchor: .bottom)
                 }
             }
-            HStack(spacing: 8) {
-                TextField("Ask the agent…", text: $input, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(1 ... 4)
-                Button {
-                    running ? abort() : send()
-                } label: {
-                    Image(systemName: running ? "stop.circle.fill" : "arrow.up.circle.fill")
-                        .font(.title2)
-                }
-                .disabled(!running && input.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
+            Composer(
+                input: $input,
+                running: running,
+                dictation: dictation,
+                onDictate: {
+                    if !dictation.recording { typedBeforeDictation = input }
+                    dictation.toggle()
+                },
+                onSend: { running ? abort() : send() }
+            )
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -107,6 +108,16 @@ struct SessionView: View {
             // Back on screen with a turn unfinished: the socket is dead
             // (iOS killed it), the Mac's work isn't. Pick the turn back up.
             if scenePhase == .active, running { resume() }
+            // Leaving with the mic live would keep recording off-screen.
+            if scenePhase != .active { dictation.stop() }
+        }
+        .onChange(of: dictation.transcript) {
+            guard !dictation.transcript.isEmpty else { return }
+            let prefix = typedBeforeDictation.isEmpty ? "" : typedBeforeDictation + " "
+            input = prefix + dictation.transcript
+        }
+        .onChange(of: dictation.error) {
+            if let message = dictation.error { error = message }
         }
     }
 
@@ -236,6 +247,42 @@ struct SessionView: View {
             default: break
             }
         }
+    }
+}
+
+/// The prompt bar: type or dictate, send or stop. Extracted from the body
+/// because the type checker gave up on it inline.
+private struct Composer: View {
+    @Binding var input: String
+    let running: Bool
+    @ObservedObject var dictation: Dictation
+    let onDictate: () -> Void
+    let onSend: () -> Void
+
+    private var empty: Bool {
+        input.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("Ask the agent…", text: $input, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1 ... 4)
+            if !dictation.unavailable {
+                Button(action: onDictate) {
+                    Image(systemName: dictation.recording ? "mic.fill" : "mic")
+                        .font(.title3)
+                        .foregroundStyle(dictation.recording ? Color.red : Color.accentColor)
+                }
+                .accessibilityLabel(dictation.recording ? "Stop dictation" : "Dictate")
+            }
+            Button(action: onSend) {
+                Image(systemName: running ? "stop.circle.fill" : "arrow.up.circle.fill")
+                    .font(.title2)
+            }
+            .disabled(!running && empty)
+        }
+        .padding()
     }
 }
 

@@ -125,8 +125,13 @@ struct OpenCodeAdapter {
         .sorted { ($0.updated ?? .distantPast) > ($1.updated ?? .distantPast) }
     }
 
-    func sessions(limit: Int = 20) async throws -> [Session] {
-        let list = try await get("/experimental/session?limit=\(limit)") as? [[String: Any]] ?? []
+    func sessions(limit: Int = 20, search: String? = nil) async throws -> [Session] {
+        var path = "/experimental/session?limit=\(limit)"
+        if let search, !search.isEmpty,
+           let encoded = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path += "&search=\(encoded)"
+        }
+        let list = try await get(path) as? [[String: Any]] ?? []
         return list.compactMap { item in
             guard let id = item["id"] as? String else { return nil }
             let time = item["time"] as? [String: Any]

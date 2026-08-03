@@ -239,7 +239,7 @@ private final class Connection {
             }
         case "sessions":
             answer { var e = Wire.Event(kind: "sessions")
-                     e.sessions = try await adapter.sessions()
+                     e.sessions = try await adapter.sessions(search: request.search)
                      return [e] }
         case "prompt":
             servePrompt(request, adapter: adapter)

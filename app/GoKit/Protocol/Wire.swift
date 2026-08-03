@@ -61,6 +61,9 @@ public enum Wire {
         /// question: selected labels per question, in order. A free-text
         /// answer travels as that question's single "label".
         public var answers: [[String]]?
+        /// sessions: filter server-side rather than shipping everything and
+        /// filtering on the phone — the session list can be thousands long.
+        public var search: String?
 
         public init(kind: String) { self.kind = kind }
     }
