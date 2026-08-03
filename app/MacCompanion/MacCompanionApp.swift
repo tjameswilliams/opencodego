@@ -14,9 +14,23 @@ struct MacCompanionApp: App {
     /// backs the menu's manual "Check for Updates…". The app is distributed
     /// outside the App Store (brew cask / direct dmg), so updating is ours
     /// to do.
+    ///
+    /// Deliberately not started at construction. Sparkle treats an invalid
+    /// `SUPublicEDKey` as a fatal error and kills the app on launch — and
+    /// the key is a placeholder in every build until someone has run
+    /// scripts/setup-signing-key.sh. A development build should run without
+    /// an update channel, not refuse to launch.
     private let updater = SPUStandardUpdaterController(
-        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
+        startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil
     )
+
+    /// Whether this build can actually check for updates. False in
+    /// development, which is why the menu item hides rather than lying.
+    private static var updatesConfigured: Bool {
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String
+        else { return false }
+        return !key.isEmpty && !key.hasPrefix("REPLACE_WITH_")
+    }
 
     @MainActor
     init() {
@@ -33,8 +47,11 @@ struct MacCompanionApp: App {
 
     var body: some Scene {
         MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
-            StatusMenu(opencode: opencode, phone: phone, server: server, updater: updater)
-                .onAppear(perform: bootstrap)
+            StatusMenu(
+                opencode: opencode, phone: phone, server: server,
+                updater: Self.updatesConfigured ? updater : nil
+            )
+            .onAppear(perform: bootstrap)
         }
 
         Window("Devices", id: "devices") {
@@ -54,6 +71,7 @@ struct MacCompanionApp: App {
     private func bootstrap() {
         guard !started else { return }
         started = true
+        if Self.updatesConfigured { updater.startUpdater() }
         opencode.start()
         server.start()
     }
