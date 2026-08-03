@@ -9,11 +9,19 @@ settings:
     DEVELOPMENT_TEAM: 7NHJT99NX8
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.9"
+packages:
+  # Auto-update for the direct/brew-distributed Mac app. Pinned exactly;
+  # bump deliberately alongside SPARKLE_VERSION in scripts/release.sh.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.9.4
 targets:
   MacCompanion:
     type: application
     platform: macOS
     sources: [MacCompanion, GoKit]
+    dependencies:
+      - package: Sparkle
     entitlements:
       path: MacCompanion/MacCompanion.entitlements
       properties:
@@ -36,6 +44,13 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Menu bar only — no Dock icon, no app switcher entry.
         LSUIElement: true
+        # Sparkle: the appcast lives in the repo next to the releases the
+        # dmgs are attached to. SUPublicEDKey is the public half of the
+        # keypair scripts/setup-signing-key.sh puts in the login keychain —
+        # release.sh refuses to build while it's the placeholder.
+        SUFeedURL: https://raw.githubusercontent.com/tjameswilliams/opencodego/master/dist/updates/appcast.xml
+        SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
+        SUEnableAutomaticChecks: true
         NSLocalNetworkUsageDescription: >-
           OpenCode Go serves your coding agent to your paired iPhone on your
           local network.
@@ -73,6 +88,9 @@ targets:
           OpenCode Go connects to your Mac on your local network to run your
           coding agent. Your code never leaves your machines.
         NSBonjourServices: ["_opencodego._tcp"]
+        NSFaceIDUsageDescription: >-
+          OpenCode Go confirms it's you before approving the agent's
+          commands.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.timwilliams.opencodego.ios

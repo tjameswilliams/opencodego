@@ -28,5 +28,11 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>OpenCode Go serves your coding agent to your paired iPhone on your local network.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/tjameswilliams/opencodego/master/dist/updates/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>REPLACE_WITH_SPARKLE_PUBLIC_KEY</string>
 </dict>
 </plist>

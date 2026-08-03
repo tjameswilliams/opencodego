@@ -114,12 +114,15 @@ struct ApprovalsView: View {
     }
 
     private func answer(_ request: PermissionRequest, _ reply: String) {
-        pending.removeAll { $0.id == request.id }
-        var wire = Wire.Request(kind: "permission")
-        wire.permissionID = request.id
-        wire.project = attention.directory
-        wire.reply = reply
         Task {
+            // Same gate as the live session: Face ID before granting,
+            // never before declining.
+            if reply != "reject", await !Approver.confirm() { return }
+            pending.removeAll { $0.id == request.id }
+            var wire = Wire.Request(kind: "permission")
+            wire.permissionID = request.id
+            wire.project = attention.directory
+            wire.reply = reply
             for await event in MacLink().run(wire) where event.kind == "failed" {
                 error = event.text
             }

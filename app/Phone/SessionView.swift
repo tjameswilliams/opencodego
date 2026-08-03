@@ -207,12 +207,14 @@ struct SessionView: View {
     // MARK: - Approvals
 
     private func answer(_ request: PermissionRequest, reply: String) {
-        permission = nil
-        var wire = Wire.Request(kind: "permission")
-        wire.permissionID = request.id
-        wire.project = project
-        wire.reply = reply
         Task {
+            // Face ID stands in front of granting, never of declining.
+            if reply != "reject", await !Approver.confirm() { return }
+            permission = nil
+            var wire = Wire.Request(kind: "permission")
+            wire.permissionID = request.id
+            wire.project = project
+            wire.reply = reply
             for await event in MacLink().run(wire) where event.kind == "failed" {
                 error = event.text
             }

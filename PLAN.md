@@ -162,6 +162,24 @@ unaffiliated" attribution per upstream's naming request.
   (tjameswilliams/homebrew-tap) or eventually homebrew/cask.
 - Phone: App Store.
 
+### M5 — Remote desktop client (roadmap, added 2026-08-02)
+Drive the home Mac's OpenCode from another computer — same product, bigger
+screen. The pieces already in place: protocol v1 is client-agnostic, and
+GoKit (Wire, Punch, Pairing) is shared Swift that compiles on macOS today.
+What it actually needs, in order:
+1. **Multi-peer pairing** — the prerequisite, also needed for multi-Mac and
+   already flagged in M4: replace the fixed `peer-mac`/`peer-phone` CloudKit
+   record names with per-device records (device UUID in the record name,
+   role as a field), let the Mac hold several paired peers and punch toward
+   each, and let PairingStore hold a list. Do this FIRST and only after
+   M2/M3 hardware verification passes — it invalidates existing pairings.
+2. **Client mode** — a macOS target (or one multiplatform target) reusing
+   the phone's Home/Session/Approvals views; MacLink works as-is on macOS
+   (drop the UIDevice name for Host name).
+3. Explicitly NOT: exposing OpenCode's own web UI through the tunnel —
+   that reintroduces the exposed-server model this product exists to avoid.
+CloudKit rendezvous keeps it same-Apple-ID, Apple-devices-only; fine.
+
 ## Deliberately out of scope (for now)
 - Full terminal (`/pty`) and file editor — later, behind capability flags
 - Android — the CloudKit rendezvous is Apple-native; revisit only if the

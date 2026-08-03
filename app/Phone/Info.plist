@@ -26,6 +26,8 @@
 	<array>
 		<string>_opencodego._tcp</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>OpenCode Go confirms it's you before approving the agent's commands.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>OpenCode Go connects to your Mac on your local network to run your coding agent. Your code never leaves your machines.</string>
 	<key>UILaunchScreen</key>

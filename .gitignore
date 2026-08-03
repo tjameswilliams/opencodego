@@ -42,3 +42,9 @@ xcuserdata/
 
 # Spike playground (throwaway git repo the M0 spike works in)
 spikes/playground/
+
+# Release artifacts (dmgs are GitHub release assets; appcast is committed)
+build/
+dist/*.dmg
+dist/updates/*.dmg
+dist/updates/*.delta

@@ -1,3 +1,4 @@
+import Sparkle
 import SwiftUI
 
 /// The Mac companion: a menu bar item and nothing else. Its jobs — keep
@@ -8,10 +9,17 @@ struct MacCompanionApp: App {
     @StateObject private var opencode = OpenCodeProcess()
     @StateObject private var phone = PhoneLinkMonitor.shared
     @State private var server: GoServer?
+    /// Sparkle drives its own update checks against the appcast; this also
+    /// backs the menu's manual "Check for Updates…". The app is distributed
+    /// outside the App Store (brew cask / direct dmg), so updating is ours
+    /// to do.
+    private let updater = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
+    )
 
     var body: some Scene {
         MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
-            StatusMenu(opencode: opencode, phone: phone, server: server)
+            StatusMenu(opencode: opencode, phone: phone, server: server, updater: updater)
                 .onAppear(perform: bootstrap)
         }
 
@@ -45,6 +53,7 @@ struct StatusMenu: View {
     @ObservedObject var opencode: OpenCodeProcess
     @ObservedObject var phone: PhoneLinkMonitor
     var server: GoServer?
+    var updater: SPUStandardUpdaterController?
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -77,6 +86,9 @@ struct StatusMenu: View {
                 }
             }
             Divider()
+            if let updater {
+                Button("Check for Updates…") { updater.checkForUpdates(nil) }
+            }
             Button("Quit") {
                 opencode.stop()
                 NSApp.terminate(nil)
