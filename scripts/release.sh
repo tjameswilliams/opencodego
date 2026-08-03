@@ -8,8 +8,9 @@
 #   release.sh <version>                   full run (needs the notary profile)
 #   release.sh <version> --skip-notarize   signed dmg only, no notarization
 #
-# Then: scripts/publish.sh <version> uploads the dmg to a GitHub release and
-# pushes the appcast, which is what both Sparkle and the Homebrew cask read.
+# Then: website/scripts/deploy.sh uploads the dmg, the versioned dmgs and
+# the signed appcast to S3/CloudFront — which is what both Sparkle and the
+# Homebrew cask read.
 #
 # <version> becomes CFBundleShortVersionString (e.g. 0.2.0); CFBundleVersion
 # is a UTC datestamp, so it is monotonic without bookkeeping. Sparkle
@@ -39,7 +40,7 @@ SPARKLE_BIN="$HOME/Library/Caches/opencodego/sparkle-$SPARKLE_VERSION/bin"
 # Where shipped apps fetch updates from. GitHub releases host the dmgs; the
 # appcast itself is served from the repo so a release is one upload plus one
 # commit.
-DOWNLOAD_PREFIX="https://github.com/tjameswilliams/opencodego/releases/latest/download/"
+DOWNLOAD_PREFIX="https://goforopencode.com/downloads/"
 
 VERSION="${1:-}"
 if [[ -z "$VERSION" || "$VERSION" == --* ]]; then
@@ -161,4 +162,4 @@ echo "==> Generating appcast"
 
 shasum -a 256 "$DIST/OpenCodeGo.dmg"
 echo "==> Done: $DIST/OpenCodeGo.dmg + $DIST/updates (OpenCodeGo-$VERSION.dmg, appcast.xml)"
-echo "    Next: scripts/publish.sh $VERSION"
+echo "    Next: website/scripts/deploy.sh"

@@ -29,6 +29,18 @@ final class AgentStore: ObservableObject {
     /// in the UI, because it changes what the whole screen means.
     var isReadOnly: Bool { selected?.name == "plan" }
 
+    #if DEBUG
+    /// Populates the real agent list for tools/uiharness, which has no Mac
+    /// to ask. Debug-only so a shipped build cannot reach it.
+    func mockForHarness(plan: Bool = false) {
+        agents = [
+            AgentInfo(name: "build", description: "The default agent.", mode: "primary"),
+            AgentInfo(name: "plan", description: "Plan mode. Disallows all edit tools.", mode: "primary"),
+        ]
+        selected = plan ? agents.first { $0.name == "plan" } : nil
+    }
+    #endif
+
     func loadIfNeeded() async {
         guard agents.isEmpty, !loading else { return }
         loading = true

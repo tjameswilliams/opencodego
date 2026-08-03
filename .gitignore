@@ -56,3 +56,11 @@ tools/uiharness/Harness.xcodeproj/
 .build/
 .swiftpm/
 Package.resolved
+
+# Website build + CDK state
+website/node_modules/
+website/dist/
+website/.astro/
+website/infra/node_modules/
+website/infra/cdk.out/
+website/infra/outputs.json

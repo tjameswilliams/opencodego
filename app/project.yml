@@ -53,7 +53,7 @@ targets:
         # dmgs are attached to. SUPublicEDKey is the public half of the
         # keypair scripts/setup-signing-key.sh puts in the login keychain —
         # release.sh refuses to build while it's the placeholder.
-        SUFeedURL: https://raw.githubusercontent.com/tjameswilliams/opencodego/master/dist/updates/appcast.xml
+        SUFeedURL: https://goforopencode.com/downloads/appcast.xml
         SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
         SUEnableAutomaticChecks: true
         NSLocalNetworkUsageDescription: >-
