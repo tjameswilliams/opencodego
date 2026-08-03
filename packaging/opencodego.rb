@@ -1,4 +1,4 @@
-# Homebrew cask for the OpenCode Go Mac companion.
+# Homebrew cask for the Go for OpenCode Mac companion.
 #
 # Lives here as the source of truth; scripts/publish.sh stamps the version
 # and checksum, and the file is then copied into the tap repo
@@ -12,7 +12,7 @@ cask "opencodego" do
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
   url "https://github.com/tjameswilliams/opencodego/releases/download/v#{version}/OpenCodeGo.dmg"
-  name "OpenCode Go"
+  name "Go for OpenCode"
   desc "Drive the OpenCode coding agent on your Mac from your iPhone"
   homepage "https://github.com/tjameswilliams/opencodego"
 
@@ -21,7 +21,7 @@ cask "opencodego" do
   # The companion drives the OpenCode CLI; without it there's nothing to run.
   depends_on formula: "opencode"
 
-  app "OpenCode Go.app"
+  app "Go for OpenCode.app"
 
   zap trash: [
     "~/Library/Application Support/OpenCodeGo",

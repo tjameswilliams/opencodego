@@ -44,7 +44,7 @@ targets:
     info:
       path: MacCompanion/Info.plist
       properties:
-        CFBundleDisplayName: OpenCode Go
+        CFBundleDisplayName: Go for OpenCode
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Menu bar only — no Dock icon, no app switcher entry.
@@ -57,7 +57,7 @@ targets:
         SUPublicEDKey: REPLACE_WITH_SPARKLE_PUBLIC_KEY
         SUEnableAutomaticChecks: true
         NSLocalNetworkUsageDescription: >-
-          OpenCode Go serves your coding agent to your paired iPhone on your
+          Go for OpenCode serves your coding agent to your paired iPhone on your
           local network.
         NSBonjourServices: ["_opencodego._tcp"]
     settings:
@@ -88,7 +88,7 @@ targets:
     info:
       path: Phone/Info.plist
       properties:
-        CFBundleDisplayName: OpenCode Go
+        CFBundleDisplayName: Go for OpenCode
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # The app's own crypto is the pairing channel — Curve25519/ChaChaPoly
@@ -97,25 +97,25 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         NSLocalNetworkUsageDescription: >-
-          OpenCode Go connects to your Mac on your local network to run your
+          Go for OpenCode connects to your Mac on your local network to run your
           coding agent. Your code never leaves your machines.
         NSBonjourServices: ["_opencodego._tcp"]
         NSFaceIDUsageDescription: >-
-          OpenCode Go confirms it's you before approving the agent's
+          Go for OpenCode confirms it's you before approving the agent's
           commands.
         # Dictating a prompt. Recognition is pinned on-device (see
         # Dictation.swift) — the audio never leaves the phone.
         NSMicrophoneUsageDescription: >-
-          OpenCode Go uses the microphone so you can dictate prompts to your
+          Go for OpenCode uses the microphone so you can dictate prompts to your
           coding agent.
         NSSpeechRecognitionUsageDescription: >-
-          OpenCode Go transcribes your dictated prompts on this device.
+          Go for OpenCode transcribes your dictated prompts on this device.
           Nothing is sent to Apple or anyone else.
         # Attaching a photo of a screen, a whiteboard, an error. The image
         # goes to your own Mac and nowhere else. The photo library needs no
         # entry — the system picker runs out of process.
         NSCameraUsageDescription: >-
-          OpenCode Go uses the camera so you can send your agent a photo —
+          Go for OpenCode uses the camera so you can send your agent a photo —
           a screenshot, a diagram, an error on another screen.
     settings:
       base:

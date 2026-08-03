@@ -61,7 +61,7 @@ struct PairingGate: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            BrandWordmark(height: 34, color: .ink)
+            BrandWordmark(height: 20, color: .ink)
             Text("Your Mac writes the code. Your phone holds the leash.")
                 .foregroundStyle(Color.inkMuted)
             PairingPhaseView(session: session)

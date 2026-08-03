@@ -362,9 +362,9 @@ private final class Connection {
             // arrive here. Say that, rather than a bare protocol error.
             var e = Wire.Event(kind: "failed")
             e.text = """
-            This Mac's OpenCode Go app doesn't understand "\(request.kind)" \
+            The Go for OpenCode app on this Mac doesn't understand "\(request.kind)" \
             — it's an older version (\(Bundle.companionVersion)). Quit and \
-            reopen OpenCode Go on your Mac.
+            reopen Go for OpenCode on your Mac.
             """
             write(e)
             write(Wire.Event(kind: "done"))

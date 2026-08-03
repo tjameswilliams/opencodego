@@ -77,7 +77,9 @@ France also requires a separate declaration for apps distributed there.
 
 ## Before submitting
 
-- [ ] **Rename** (see above).
+- [x] **Rename** — "Go for OpenCode" (2026-08-03).
+- [ ] Subtitle: "Drive your OpenCode agent from your phone" — the
+      compatibility claim belongs here, where it is descriptive.
 - [ ] **Confirm export-compliance answer** (see above).
 - [ ] Flip `aps-environment` to `production` for the release build —
       `project.yml` currently pins `development`, which is right for

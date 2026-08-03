@@ -64,11 +64,29 @@ xcrun simctl launch booted com.timwilliams.harness.ui
 It builds the actual source files rather than copies, so what you see is
 what ships.
 
+## "Missing package product 'GoKit'"
+
+Xcode caches resolved packages per project, and `xcodegen generate`
+replaces the project file underneath a running Xcode. The result is an
+Xcode that still believes in the old layout while the disk has moved on.
+Command-line builds succeed the whole time, which makes it look like a
+GUI-only bug — it is.
+
+```sh
+# quit Xcode completely first (⌘Q, not just the window)
+rm -rf ~/Library/Developer/Xcode/DerivedData/OpenCodeGo-*
+cd app && xcodegen generate
+open OpenCodeGo.xcodeproj      # let package resolution finish before building
+```
+
+`File → Packages → Reset Package Caches` does the same thing from inside
+Xcode, and is worth trying first.
+
 ## Two stale-state traps
 
 1. **The Mac companion is a menu bar app people leave running.** Rebuilding
    in Xcode does not replace a running instance. A phone talking to a stale
-   companion gets "this Mac's OpenCode Go app doesn't understand …" — quit
+   companion gets "the Go for OpenCode app on this Mac doesn't understand …" — quit
    from the menu bar and Run again.
 2. **Two companions at once.** The second can't bind port 8766 and the phone
    silently reaches the first. The menu bar says "Another copy of OpenCode

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Build, sign, notarize, and package the OpenCode Go Mac companion.
+# Build, sign, notarize, and package the Go for OpenCode Mac companion.
 # Produces:
 #   dist/OpenCodeGo.dmg                    evergreen first-install download
 #   dist/updates/OpenCodeGo-<v>.dmg        versioned artifact for Sparkle
@@ -110,23 +110,23 @@ APP="$BUILD/export/MacCompanion.app"
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=1 "$APP"
 
-# The bundle ships as OpenCode Go.app; renaming a signed bundle is safe —
+# The bundle ships as Go for OpenCode.app; renaming a signed bundle is safe —
 # the seal binds the bundle id, not the folder name.
 STAGE="$BUILD/stage"
 mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/OpenCode Go.app"
+cp -R "$APP" "$STAGE/Go for OpenCode.app"
 
 if ! $SKIP_NOTARIZE; then
   echo "==> Notarizing app"
-  ditto -c -k --keepParent "$STAGE/OpenCode Go.app" "$BUILD/OpenCodeGo.zip"
+  ditto -c -k --keepParent "$STAGE/Go for OpenCode.app" "$BUILD/OpenCodeGo.zip"
   xcrun notarytool submit "$BUILD/OpenCodeGo.zip" --keychain-profile "$PROFILE" --wait
-  xcrun stapler staple "$STAGE/OpenCode Go.app"
+  xcrun stapler staple "$STAGE/Go for OpenCode.app"
 fi
 
 echo "==> Building dmg"
 ln -sf /Applications "$STAGE/Applications"
 rm -f "$BUILD/OpenCodeGo.dmg"
-hdiutil create -volname "OpenCode Go" -srcfolder "$STAGE" -ov -format UDZO -quiet \
+hdiutil create -volname "Go for OpenCode" -srcfolder "$STAGE" -ov -format UDZO -quiet \
   "$BUILD/OpenCodeGo.dmg"
 codesign --sign "$IDENTITY" --timestamp "$BUILD/OpenCodeGo.dmg"
 

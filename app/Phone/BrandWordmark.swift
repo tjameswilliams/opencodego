@@ -22,6 +22,13 @@ struct BrandWordmark: View {
     var color: Color = .ink
     /// Drives the scanline sweep; nil renders the mark at rest.
     var sweep: Double?
+    /// What to spell. The full lockup where there is room; `Self.compact`
+    /// in a navigation bar, which cannot hold fifteen characters of
+    /// four-cell lettering at a legible size.
+    var text: String = BrandWordmark.full
+
+    public static let full = "GO FOR OPENCODE"
+    public static let compact = "GO"
 
     /// Cells are whole points. A fractional cell puts every edge on a
     /// sub-pixel boundary, and the antialiasing eats exactly the details
@@ -30,7 +37,7 @@ struct BrandWordmark: View {
 
     var body: some View {
         Canvas { context, _ in
-            for (column, row) in Glyphs.cells(of: Self.text) {
+            for (column, row) in Glyphs.cells(of: text) {
                 let rect = CGRect(
                     x: CGFloat(column) * cell, y: CGFloat(row) * cell,
                     width: cell, height: cell
@@ -42,20 +49,18 @@ struct BrandWordmark: View {
             }
         }
         .frame(
-            width: cell * CGFloat(Glyphs.width(of: Self.text)),
+            width: cell * CGFloat(Glyphs.width(of: text)),
             height: cell * CGFloat(Glyphs.rows)
         )
-        .accessibilityLabel("OpenCode Go")
+        .accessibilityLabel("Go for OpenCode")
     }
-
-    private static let text = "OPENCODE GO"
 
     /// A three-cell bright band travelling the grid, the way Claude Code
     /// and Codex both shimmer their status rows. At rest everything is
     /// uniform.
     private func opacity(forColumn column: Int) -> Double {
         guard let sweep else { return 1 }
-        let span = Double(Glyphs.width(of: Self.text))
+        let span = Double(Glyphs.width(of: text))
         // Lead-in and lead-out beyond both ends, so the band enters and
         // leaves rather than popping.
         let head = sweep * (span + 20) - 10

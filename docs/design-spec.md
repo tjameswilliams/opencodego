@@ -1,4 +1,4 @@
-# OpenCode Go — design specification
+# Go for OpenCode — design specification
 
 The target: **Anthropic's typographic restraint, OpenCode's constructed
 geometry.** Warm neutrals, generous air, no divider lines, and lettering

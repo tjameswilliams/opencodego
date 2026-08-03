@@ -1,4 +1,4 @@
-# OpenCode Go
+# Go for OpenCode
 
 Drive the [OpenCode](https://opencode.ai) coding agent on your Mac from a
 native iPhone app — with **zero network configuration**. No Tailscale, no
@@ -9,7 +9,7 @@ your phone holds the leash.
 > streaming, and tool approvals work on LAN today; remote (hole-punched)
 > access and push notifications are in active development.
 
-*OpenCode Go is an independent project, not affiliated with or endorsed by
+*Go for OpenCode is an independent project, not affiliated with or endorsed by
 the OpenCode project or Anomaly. It drives your own OpenCode installation.*
 
 ## How it works

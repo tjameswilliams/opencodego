@@ -23,7 +23,7 @@ echo "==> sha256 $SHA"
 
 echo "==> Creating GitHub release v$VERSION"
 gh release create "v$VERSION" "$DMG" \
-  --title "OpenCode Go $VERSION" \
+  --title "Go for OpenCode $VERSION" \
   --notes "Mac companion $VERSION. Install: \`brew install --cask tjameswilliams/tap/opencodego\`"
 
 # The cask's sha256 must match the artifact users actually download.

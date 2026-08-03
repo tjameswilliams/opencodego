@@ -47,7 +47,7 @@ struct MacCompanionApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("OpenCode Go", systemImage: menuSymbol) {
+        MenuBarExtra("Go for OpenCode", systemImage: menuSymbol) {
             StatusMenu(
                 opencode: opencode, phone: phone, server: server,
                 updater: Self.updatesConfigured ? updater : nil
@@ -90,7 +90,7 @@ struct StatusMenu: View {
             if server.conflict {
                 // The single most confusing state this app can be in: two
                 // copies running, the phone talking to the other one.
-                Text("⚠︎ Another copy of OpenCode Go is running — quit it")
+                Text("⚠︎ Another copy of Go for OpenCode is running — quit it")
             }
             switch opencode.state {
             case let .running(port, version):
