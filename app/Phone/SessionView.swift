@@ -275,28 +275,34 @@ private struct Transcript: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            List {
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
-                    PartRow(part: part).id(index)
-                }
-                if !diffs.isEmpty {
-                    Section("Changes") {
-                        ForEach(diffs, id: \.file) { diff in
-                            DiffRow(diff: diff)
-                        }
+            ScrollView {
+                // A ScrollView rather than a List: List draws separators
+                // between rows, and a ruled transcript reads like a
+                // spreadsheet. Structure here comes from space, alignment,
+                // and weight — never from lines.
+                LazyVStack(alignment: .leading, spacing: Space.betweenParts) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, part in
+                        PartRow(part: part)
+                            .id(index)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if !diffs.isEmpty {
+                        ChangeSummary(diffs: diffs)
+                    }
+                    if let error {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    if running {
+                        WorkingIndicator(activity: activity)
+                            .id(Self.indicatorID)
                     }
                 }
-                if let error {
-                    Label(error, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
-                }
-                if running {
-                    WorkingIndicator(activity: activity)
-                        .id(Self.indicatorID)
-                        .listRowSeparator(.hidden)
-                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.vertical, Space.betweenParts)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .listStyle(.plain)
             .onChange(of: rows.count) { scroll(proxy) }
             .onChange(of: running) { scroll(proxy) }
         }
@@ -313,17 +319,37 @@ private struct Transcript: View {
     }
 }
 
-private struct DiffRow: View {
-    let diff: FileDiff
+/// What the turn changed. A tinted block rather than a ruled section —
+/// same job a `Section` header did, done with surface instead of lines.
+private struct ChangeSummary: View {
+    let diffs: [FileDiff]
 
     var body: some View {
-        HStack {
-            Text(diff.file).font(.caption.monospaced())
-            Spacer()
-            Text("+\(diff.additions ?? 0) −\(diff.deletions ?? 0)")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Changes")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+            ForEach(diffs, id: \.file) { diff in
+                HStack(spacing: 8) {
+                    Text(diff.file)
+                        .font(.caption.monospaced())
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 8)
+                    Text("+\(diff.additions ?? 0)")
+                        .foregroundStyle(.green)
+                    Text("−\(diff.deletions ?? 0)")
+                        .foregroundStyle(.red)
+                }
+                .font(.caption.monospacedDigit())
+            }
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+        )
     }
 }
 
