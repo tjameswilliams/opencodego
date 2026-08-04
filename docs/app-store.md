@@ -144,6 +144,32 @@ France also requires a separate declaration for apps distributed there.
       "yes" would have contradicted the shipped manifest. Responses are
       editable and re-publishable if that ever stops being true.
 
+## Uploading a build: error 90129
+
+**`CFBundleName` must be set explicitly in `project.yml`.** Unset, it
+falls through to `$(PRODUCT_NAME)`, which is the *target* name — `Phone`
+— and App Store Connect rejects the upload:
+
+> 90129: The bundle uses a bundle name or display name that is already
+> taken.
+
+`Phone` is one of Apple's own apps, so the name is reserved. Setting
+`CFBundleDisplayName` alone is not enough; both keys are checked.
+
+What makes this expensive is *where* it fails. The rejection happens
+during processing, **after** the upload completes, so Xcode reports a
+successful upload and the build simply never appears in TestFlight. The
+only trace is TestFlight → Build Uploads, where it shows as **Failed** —
+that list is the first place to look whenever a build goes missing, not
+the Builds list, which only ever shows successes.
+
+Two 1.0 (1) uploads were lost to this on 2026-08-03 before the cause was
+found. `CURRENT_PROJECT_VERSION` was bumped to `2` afterwards, since a
+failed upload can still hold its build number.
+
+The `.app` is still named `Phone.app` — that is `PRODUCT_NAME` and Apple
+does not check it, so renaming the product is optional.
+
 ## The real blocker is not paperwork
 
 **Nothing has been verified on a device beyond LAN pairing and a typed

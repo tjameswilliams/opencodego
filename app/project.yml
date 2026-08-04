@@ -93,6 +93,16 @@ targets:
         CFBundleDisplayName: Go for OpenCode
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Must be set explicitly. Left unset, CFBundleName falls through to
+        # $(PRODUCT_NAME), which is the *target* name — "Phone" — and App
+        # Store Connect rejects the upload with error 90129, "the bundle
+        # uses a bundle name or display name that is already taken",
+        # because Phone is one of Apple's own apps. The rejection happens
+        # during processing, after the upload succeeds, so Xcode reports
+        # success and the build simply never appears in TestFlight.
+        #
+        # 15 characters, which is the ceiling Apple documents for this key.
+        CFBundleName: Go for OpenCode
         # The app's own crypto is the pairing channel — Curve25519/ChaChaPoly
         # via CryptoKit — plus HTTPS and CloudKit, all OS-provided: exactly
         # the export-compliance exemption this key claims.
@@ -125,7 +135,10 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        # Bumped past the two 1.0 (1) uploads that failed processing. App
+        # Store Connect can hold a build number from a failed upload, and
+        # colliding costs another full archive-and-upload cycle.
+        CURRENT_PROJECT_VERSION: "2"
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: Phone/Phone.entitlements
       configs:
