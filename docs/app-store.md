@@ -114,10 +114,19 @@ France also requires a separate declaration for apps distributed there.
       rejection after the name. Consider either supplying a demo video, or
       a review-mode build with a canned transcript.
 - [ ] Age rating and export-compliance answers in App Store Connect.
-- [ ] **App Privacy questionnaire** — the "Get Started" flow on the App
-      Privacy page is still untouched. Setting the privacy-policy URL does
-      not satisfy it; the declarations are a separate, required step, and
-      the answer here is "no data collected" across the board.
+- [x] **App Privacy questionnaire** — answered "No, we do not collect
+      data from this app" and published; the product page now shows **Data
+      Not Collected**. This is a separate requirement from the
+      privacy-policy URL, which does not satisfy it.
+
+      The answer is defensible and consistent with everything already
+      shipped: no backend, no analytics, no third-party SDKs, and
+      `PrivacyInfo.xcprivacy` already declares no collection. Apple's
+      definition turns on data *we* can access — prompts and code go only
+      to the user's own Mac, and pairing records live in the user's own
+      CloudKit private database, which the developer cannot read. Answering
+      "yes" would have contradicted the shipped manifest. Responses are
+      editable and re-publishable if that ever stops being true.
 
 ## The real blocker is not paperwork
 
