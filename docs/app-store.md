@@ -92,10 +92,13 @@ France also requires a separate declaration for apps distributed there.
       profile grants. The production value only appears once exported with
       `method: app-store` against a distribution profile — check it there,
       not in the archive.
-- [ ] Confirm the CloudKit container is deployed to the **Production**
-      environment. Development-environment schema does not exist in
-      production, so pairing would fail for every real user. This is the
-      classic first-release CloudKit failure.
+- [ ] ⚠️ **Confirm the CloudKit container is deployed to the Production
+      environment.** This is now the largest un-cleared risk. Development
+      schema does not exist in production, so pairing would fail for every
+      real user *and for the reviewer* — who would see a pairing screen
+      that never succeeds and reject the app as non-functional. Nothing
+      done so far tests this: every pairing to date ran against the
+      development environment.
 - [x] Screenshots for the 6.5" slot (4 uploaded).
 - [ ] **App previews** — encoded and waiting at
       `~/Downloads/goforopencode-previews/`, but they must be dragged into
@@ -129,7 +132,27 @@ France also requires a separate declaration for apps distributed there.
       a pairing screen and nothing else — this is the second most likely
       rejection after the name. Consider either supplying a demo video, or
       a review-mode build with a canned transcript.
-- [ ] Age rating and export-compliance answers in App Store Connect.
+- [x] **Age rating** — every answer is None/No, giving a calculated **4+**
+      (172 countries; AL Brazil, ALL Korea, 00+ Vietnam), with age category
+      "Not Applicable". Two answers were checked against the code rather
+      than assumed: there is no `WKWebView`/`SFSafariViewController`
+      anywhere, so "Unrestricted Web Access" is genuinely No, and Apple
+      defines "Messaging and Chat" as *users communicating with one
+      another* — this app's chat is with an agent on the user's own Mac,
+      so it is No despite the chat interface.
+- [x] **Content Rights** — "No, it does not contain, show, or access
+      third-party content." The app ships no third-party media; it renders
+      the user's own code and output generated under the user's own
+      provider account. Bundled *code* dependencies are not what this
+      question covers.
+- [x] **Pricing** — Free ($0.00) in all 175 countries, availability "All
+      Countries or Regions". Free matches what goforopencode.com already
+      states publicly and needs no Paid Applications agreement.
+- [ ] **Confirm export-compliance answer** in App Store Connect (see the
+      encryption section above). The build processed without Apple asking
+      for encryption documentation, which is consistent with the exemption
+      `ITSAppUsesNonExemptEncryption: false` claims, but that is not the
+      same as the determination having been made.
 - [x] **App Privacy questionnaire** — answered "No, we do not collect
       data from this app" and published; the product page now shows **Data
       Not Collected**. This is a separate requirement from the
