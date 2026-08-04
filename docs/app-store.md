@@ -96,7 +96,23 @@ France also requires a separate declaration for apps distributed there.
       environment. Development-environment schema does not exist in
       production, so pairing would fail for every real user. This is the
       classic first-release CloudKit failure.
-- [ ] Screenshots for every required device size.
+- [x] Screenshots for the 6.5" slot (4 uploaded).
+- [ ] **App previews** — encoded and waiting at
+      `~/Downloads/goforopencode-previews/`, but they must be dragged into
+      App Store Connect by hand. ASC's uploader accepts a programmatic
+      file assignment and then silently discards it, so this step cannot
+      be automated from the browser.
+
+      Source recordings are 60fps HEVC at 1206x2622, which is valid for
+      none of it. Each preview is re-encoded to H.264, 30fps, 1242x2688 —
+      scaled to width and cropped 12px of height, so nothing is stretched.
+
+      Duration is the constraint worth remembering: previews must be
+      **15-30s**. `diff_viewer` and `coding_session` were over and are
+      trimmed; the pairing recording was *under*, at 10.9s, and shorter
+      still once Control Center was cut at 9.1s. It holds its final frame
+      to reach 15.2s. `01-pairing-slowed.mp4` is the same footage eased to
+      0.72x with a 3s hold instead of 6.2s of freeze.
 - [x] Support URL → the GitHub repo; Marketing URL →
       `https://goforopencode.com`; Privacy Policy URL →
       `https://goforopencode.com/privacy` (the App Privacy page, not the
