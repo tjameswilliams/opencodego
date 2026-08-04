@@ -78,8 +78,9 @@ France also requires a separate declaration for apps distributed there.
 ## Before submitting
 
 - [x] **Rename** — "Go for OpenCode" (2026-08-03).
-- [ ] Subtitle: "Drive your OpenCode agent from your phone" — the
-      compatibility claim belongs here, where it is descriptive.
+- [x] Subtitle: "Steer your Mac's coding agent" — the compatibility claim
+      lives in the subtitle and description, where it is descriptive,
+      rather than in the name.
 - [ ] **Confirm export-compliance answer** (see above).
 - [x] **`aps-environment` per configuration** — Debug uses
       `Phone/Phone.entitlements` (development), Release uses
@@ -96,15 +97,27 @@ France also requires a separate declaration for apps distributed there.
       production, so pairing would fail for every real user. This is the
       classic first-release CloudKit failure.
 - [ ] Screenshots for every required device size.
-- [ ] Support URL and privacy-policy URL (a page stating the app collects
-      nothing is sufficient, and true here).
+- [x] Support URL → the GitHub repo; Marketing URL →
+      `https://goforopencode.com`; Privacy Policy URL →
+      `https://goforopencode.com/privacy` (the App Privacy page, not the
+      version page). Category is Developer Tools.
+- [x] **Open source stated on the product page** — a description section
+      and the promotional text. Both name the **PolyForm Noncommercial**
+      licence rather than saying "open source" unqualified: PolyForm
+      Noncommercial restricts commercial use, so it is source-available
+      and *not* OSI-approved. Saying "open source" with the licence named
+      in the same sentence is honest; saying it alone would be
+      open-washing, which this audience notices.
 - [ ] Review-notes text explaining that the app **requires a Mac running
       the companion** to do anything. Without a demo path, a reviewer sees
       a pairing screen and nothing else — this is the second most likely
       rejection after the name. Consider either supplying a demo video, or
       a review-mode build with a canned transcript.
-- [ ] Age rating, category (Developer Tools), and export-compliance
-      answers in App Store Connect.
+- [ ] Age rating and export-compliance answers in App Store Connect.
+- [ ] **App Privacy questionnaire** — the "Get Started" flow on the App
+      Privacy page is still untouched. Setting the privacy-policy URL does
+      not satisfy it; the declarations are a separate, required step, and
+      the answer here is "no data collected" across the board.
 
 ## The real blocker is not paperwork
 
