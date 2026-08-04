@@ -9,13 +9,13 @@ import PackageDescription
 /// and it's what a third client — the desktop app on the roadmap — would
 /// depend on without dragging an app target along with it.
 let package = Package(
-    name: "GoKit",
+    name: "RemoteKit",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "GoKit", targets: ["GoKit"]),
+        .library(name: "RemoteKit", targets: ["RemoteKit"]),
     ],
     targets: [
-        .target(name: "GoKit"),
-        .testTarget(name: "GoKitTests", dependencies: ["GoKit"]),
+        .target(name: "RemoteKit"),
+        .testTarget(name: "RemoteKitTests", dependencies: ["RemoteKit"]),
     ]
 )

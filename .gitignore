@@ -34,7 +34,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 # Xcode (project is generated — run `xcodegen generate` in app/)
-app/OpenCodeGo.xcodeproj/
+app/RemoteForOpenCode.xcodeproj/
 app/build/
 DerivedData/
 xcuserdata/

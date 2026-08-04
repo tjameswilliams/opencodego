@@ -9,6 +9,11 @@ Sparkle, which App Store apps may not do).
 
 ## ⚠️ Blocking risk: the app's name
 
+*(Historical — resolved by two renames: "OpenCode Go" → "Go for OpenCode"
+on 2026-08-03 for the 5.2.1 risk below, then → "Remote for OpenCode" on
+2026-08-04 because OpenCode themselves ship a product called "Go". The
+"X for OpenCode" pattern this section recommends is retained.)*
+
 **"OpenCode Go" contains another project's name.** Two separate problems:
 
 1. **App Review Guideline 5.2.1 (Intellectual Property).** Apple rejects
@@ -77,7 +82,15 @@ France also requires a separate declaration for apps distributed there.
 
 ## Before submitting
 
-- [x] **Rename** — "Go for OpenCode" (2026-08-03).
+- [x] **Rename** — "Go for OpenCode" (2026-08-03), then "Remote for
+      OpenCode" (2026-08-04): OpenCode ships their own product named "Go",
+      so the first rename traded a trademark collision for a product-name
+      collision. Same "X for OpenCode" shape, no new 5.2.1 exposure.
+- [ ] **Propagate the rename into App Store Connect** — the app record
+      still says "Go for OpenCode". Editable while nothing is submitted:
+      App Information → Name, plus every metadata field that repeats the
+      name (subtitle is name-free and survives; description and
+      promotional text mention the name and need the edit).
 - [x] Subtitle: "Steer your Mac's coding agent" — the compatibility claim
       lives in the subtitle and description, where it is descriptive,
       rather than in the name.
@@ -112,9 +125,13 @@ France also requires a separate declaration for apps distributed there.
       Existing pairings live in the Development environment and will not
       exist in Production, so a TestFlight or App Store build starts with
       no paired devices and must pair fresh.
-- [x] Screenshots for the 6.5" slot (4 uploaded).
+- [ ] Screenshots for the 6.5" slot — 4 were uploaded, but they show the
+      "GO FOR OPENCODE" wordmark on the home screen and must be re-captured
+      from a post-rename build before submitting.
 - [ ] **App previews** — encoded and waiting at
-      `~/Downloads/goforopencode-previews/`, but they must be dragged into
+      `~/Downloads/goforopencode-previews/`, but the recordings predate the
+      rename (old wordmark on screen) and need re-recording, re-encoding
+      with the same rules below, and then dragging into
       App Store Connect by hand. ASC's uploader accepts a programmatic
       file assignment and then silently discards it, so this step cannot
       be automated from the browser.
@@ -129,10 +146,12 @@ France also requires a separate declaration for apps distributed there.
       still once Control Center was cut at 9.1s. It holds its final frame
       to reach 15.2s. `01-pairing-slowed.mp4` is the same footage eased to
       0.72x with a 3s hold instead of 6.2s of freeze.
-- [x] Support URL → the GitHub repo; Marketing URL →
-      `https://goforopencode.com`; Privacy Policy URL →
-      `https://goforopencode.com/privacy` (the App Privacy page, not the
-      version page). Category is Developer Tools.
+- [ ] Support URL → the GitHub repo; Marketing URL and Privacy Policy URL
+      were entered as `https://goforopencode.com` /
+      `https://goforopencode.com/privacy` and need updating to
+      `remoteforopencode.com` once that domain is live (the old URLs keep
+      resolving meanwhile — same distribution). The Support URL follows the
+      GitHub repo rename. Category is Developer Tools.
 - [x] **Open source stated on the product page** — a description section
       and the promotional text. Both name the **PolyForm Noncommercial**
       licence rather than saying "open source" unqualified: PolyForm
@@ -159,7 +178,7 @@ France also requires a separate declaration for apps distributed there.
       provider account. Bundled *code* dependencies are not what this
       question covers.
 - [x] **Pricing** — Free ($0.00) in all 175 countries, availability "All
-      Countries or Regions". Free matches what goforopencode.com already
+      Countries or Regions". Free matches what the website already
       states publicly and needs no Paid Applications agreement.
 - [ ] **Confirm export-compliance answer** in App Store Connect (see the
       encryption section above). The build processed without Apple asking

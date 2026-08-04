@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 /// The wordmark, drawn rather than set.
@@ -23,12 +23,12 @@ struct BrandWordmark: View {
     /// Drives the scanline sweep; nil renders the mark at rest.
     var sweep: Double?
     /// What to spell. The full lockup where there is room; `Self.compact`
-    /// in a navigation bar, which cannot hold fifteen characters of
+    /// in a navigation bar, which cannot hold nineteen characters of
     /// four-cell lettering at a legible size.
     var text: String = BrandWordmark.full
 
-    public static let full = "GO FOR OPENCODE"
-    public static let compact = "GO"
+    public static let full = "REMOTE FOR OPENCODE"
+    public static let compact = "REMOTE"
 
     /// Cells are whole points. A fractional cell puts every edge on a
     /// sub-pixel boundary, and the antialiasing eats exactly the details
@@ -52,7 +52,7 @@ struct BrandWordmark: View {
             width: cell * CGFloat(Glyphs.width(of: text)),
             height: cell * CGFloat(Glyphs.rows)
         )
-        .accessibilityLabel("Go for OpenCode")
+        .accessibilityLabel("Remote for OpenCode")
     }
 
     /// A three-cell bright band travelling the grid, the way Claude Code

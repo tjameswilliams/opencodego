@@ -1,20 +1,24 @@
 #!/bin/bash
-# Build and ship the Go for OpenCode site. Infra via CDK, content via
+# Build and ship the Remote for OpenCode site. Infra via CDK, content via
 # s3 sync, then a CloudFront invalidation. Modelled on the Tomte site's
 # deploy; same AWS profile.
 #
 #   scripts/deploy.sh
 #
-# Set SITE_DOMAIN once goforopencode.com is registered and its hosted zone
-# exists; until then the stack deploys on the CloudFront domain alone and
-# this script still works.
+# The domain move (goforopencode.com -> remoteforopencode.com) is two
+# deploys: first with SITE_DOMAIN=remoteforopencode.com alone (drops the old
+# Apex/Www records), then again with LEGACY_SITE_DOMAIN=goforopencode.com so
+# the same distribution keeps answering the shipped Sparkle feed URL. Until
+# remoteforopencode.com is registered and has a hosted zone, deploy with
+# SITE_DOMAIN=goforopencode.com to keep updating the live site as-is.
 set -euo pipefail
 
 PROFILE="${AWS_PROFILE_OVERRIDE:-radius}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="$(cd "$ROOT/.." && pwd)"
-DMG="${OPENCODEGO_DMG:-$REPO/dist/OpenCodeGo.dmg}"
-export SITE_DOMAIN="${SITE_DOMAIN:-goforopencode.com}"
+DMG="${REMOTE_DMG:-$REPO/dist/RemoteForOpenCode.dmg}"
+export SITE_DOMAIN="${SITE_DOMAIN:-remoteforopencode.com}"
+export LEGACY_SITE_DOMAIN="${LEGACY_SITE_DOMAIN:-}"
 
 echo "==> Building site"
 (cd "$ROOT" && npm run build)
@@ -40,12 +44,12 @@ aws s3 sync "$ROOT/dist" "s3://$BUCKET" \
 
 if [ -f "$DMG" ]; then
   echo "==> Uploading desktop binary ($(du -h "$DMG" | cut -f1 | tr -d ' '))"
-  aws s3 cp "$DMG" "s3://$BUCKET/downloads/GoForOpenCode.dmg" \
+  aws s3 cp "$DMG" "s3://$BUCKET/downloads/RemoteForOpenCode.dmg" \
     --content-type application/x-apple-diskimage \
     --profile "$PROFILE" \
     --region us-east-1
 else
-  echo "==> No dmg at $DMG — skipping binary (set OPENCODEGO_DMG to override)"
+  echo "==> No dmg at $DMG — skipping binary (set REMOTE_DMG to override)"
 fi
 
 # Sparkle: versioned dmgs, binary deltas, and the signed appcast. Uploaded

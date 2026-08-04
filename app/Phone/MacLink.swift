@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import CryptoKit
 import Foundation
 import Network
@@ -12,7 +12,7 @@ import UIKit
 /// Two paths, tried in that order:
 ///
 /// 1. **Bonjour + TCP**, when the Mac is on the same network.
-/// 2. **The punched UDP path** (GoKit/Transport/Punch.swift), which works
+/// 2. **The punched UDP path** (RemoteKit/Transport/Punch.swift), which works
 ///    from anywhere. The devices meet through the address candidates they
 ///    publish to the user's own CloudKit record; no server of ours.
 ///

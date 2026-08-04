@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 // Renders the app's REAL views against representative content, for design

@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import Testing
 
-@testable import GoKit
+@testable import RemoteKit
 
 /// The protocol layer. These are the things that, if wrong, break the
 /// product silently rather than loudly: a frame that splits in the wrong

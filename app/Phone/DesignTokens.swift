@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 /// The design system's values, in one place. Full rationale and sources:

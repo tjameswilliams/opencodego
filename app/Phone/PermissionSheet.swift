@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 /// "The agent wants to do X — allow?"

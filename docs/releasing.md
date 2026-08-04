@@ -17,7 +17,7 @@ Tomte runs.
 2. **Update-signing keypair** — ✅ done.
 
    `scripts/setup-signing-key.sh` found the existing key in the login
-   keychain and reused it, so **Go for OpenCode signs updates with the same
+   keychain and reused it, so **Remote for OpenCode signs updates with the same
    key as Tomte**. That is Sparkle's intended design, not an accident: its
    own tooling states *"You only need one signing key, no matter how many
    apps you embed Sparkle in,"* and there is no per-app account option.
@@ -30,21 +30,29 @@ Tomte runs.
    offline copy.
 
 3. **Tap repo** — ✅ done. `tjameswilliams/homebrew-tap` already existed
-   for the ai-imessage formulae, so `Casks/opencodego.rb` was added
-   alongside them rather than replacing anything.
-   `packaging/opencodego.rb` is copied there on each release, which is what
-   `brew install --cask tjameswilliams/tap/opencodego` reads. The cask
+   for the ai-imessage formulae, so the cask was added alongside them
+   rather than replacing anything (originally as `Casks/opencodego.rb`,
+   pre-rename). `packaging/remote-for-opencode.rb` is copied there on each
+   release, which is what
+   `brew install --cask tjameswilliams/tap/remote-for-opencode` reads. The cask
    downloads the same artefact Sparkle updates from, so a brew install and
    an in-app update can never disagree.
+
+   Still owed from the rename: in the tap, rename
+   `Casks/opencodego.rb` → `Casks/remote-for-opencode.rb` and add a
+   `cask_renames.json` at the tap root —
+   `{"opencodego": "remote-for-opencode"}` — so anyone who installed 1.0
+   under the old token follows `brew upgrade` instead of orphaning.
 
 ## Each release
 
 ```sh
-scripts/release.sh 1.0                 # archive, sign, notarize, dmg, appcast
+scripts/release.sh 1.1                 # archive, sign, notarize, dmg, appcast
 website/scripts/deploy.sh              # site + dmg + appcast → S3/CloudFront
-# then stamp packaging/opencodego.rb with the printed version and sha256 and
-# copy it to the tap: tjameswilliams/homebrew-tap → Casks/opencodego.rb
-brew audit --cask --online tjameswilliams/tap/opencodego
+# then stamp packaging/remote-for-opencode.rb with the printed version and
+# sha256 and copy it to the tap:
+# tjameswilliams/homebrew-tap → Casks/remote-for-opencode.rb
+brew audit --cask --online tjameswilliams/tap/remote-for-opencode
 ```
 
 Hash the **served** dmg, not the local one, before trusting the stamp —
@@ -54,7 +62,7 @@ Run the audit every time. It is what caught the cask pointing at the
 unversioned `downloads/GoForOpenCode.dmg` while pinning a sha256: that
 file is overwritten by each deploy, so shipping it that way would have
 broken `brew install` for 1.0 the moment 1.1 was uploaded. The cask now
-uses `OpenCodeGo-#{version}.dmg`, which `deploy.sh` uploads without
+uses `RemoteForOpenCode-#{version}.dmg`, which `deploy.sh` uploads without
 `--delete` and therefore keeps forever. The website's download button
 still points at the unversioned URL — that one is meant to float.
 
@@ -68,9 +76,17 @@ but this one.
   `auto_updates true`, then stays out of the way — `brew upgrade` won't
   fight the in-app updater.
 - **Sparkle** does the actual updating, polling
-  `https://goforopencode.com/downloads/appcast.xml` and verifying each dmg's
+  `https://remoteforopencode.com/downloads/appcast.xml` and verifying each dmg's
   EdDSA signature before installing. That URL is compiled into every shipped
   build and installed copies poll it forever, so it must not move.
+
+  Copies shipped before the rename (1.0) poll
+  `https://goforopencode.com/downloads/appcast.xml` instead. Both domains
+  are served by the same CloudFront distribution (the stack's
+  `legacyDomainName`), so there is exactly one appcast and one set of dmgs;
+  a 1.0 copy sees the 1.1 entry on the old domain, installs it, and is on
+  the new feed URL from then on. The old domain therefore stays registered
+  and aliased for as long as any pre-rename install might exist.
 
 Version numbers: `MARKETING_VERSION` is the human version (`0.2.0`);
 `CURRENT_PROJECT_VERSION` is a UTC datestamp, so it's monotonic without

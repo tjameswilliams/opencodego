@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 /// The agent's own plan for the turn.

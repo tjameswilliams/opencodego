@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import Sparkle
 import SwiftUI
 
@@ -9,7 +9,7 @@ import SwiftUI
 struct MacCompanionApp: App {
     @StateObject private var opencode: OpenCodeProcess
     @StateObject private var phone = PhoneLinkMonitor.shared
-    @StateObject private var server: GoServer
+    @StateObject private var server: RemoteServer
     @State private var started = false
     /// Sparkle drives its own update checks against the appcast; this also
     /// backs the menu's manual "Check for Updates…". The app is distributed
@@ -40,14 +40,14 @@ struct MacCompanionApp: App {
         // Built eagerly rather than in onAppear so the menu can observe its
         // conflict state from the first frame — a second instance must be
         // able to say so before the user opens anything.
-        _server = StateObject(wrappedValue: GoServer(adapter: { [weak opencode] in
+        _server = StateObject(wrappedValue: RemoteServer(adapter: { [weak opencode] in
             guard case let .running(port, _) = opencode?.state else { return nil }
             return OpenCodeAdapter(port: port)
         }))
     }
 
     var body: some Scene {
-        MenuBarExtra("Go for OpenCode", systemImage: menuSymbol) {
+        MenuBarExtra("Remote for OpenCode", systemImage: menuSymbol) {
             StatusMenu(
                 opencode: opencode, phone: phone, server: server,
                 updater: Self.updatesConfigured ? updater : nil
@@ -81,7 +81,7 @@ struct MacCompanionApp: App {
 struct StatusMenu: View {
     @ObservedObject var opencode: OpenCodeProcess
     @ObservedObject var phone: PhoneLinkMonitor
-    @ObservedObject var server: GoServer
+    @ObservedObject var server: RemoteServer
     var updater: SPUStandardUpdaterController?
     @Environment(\.openWindow) private var openWindow
 
@@ -90,7 +90,7 @@ struct StatusMenu: View {
             if server.conflict {
                 // The single most confusing state this app can be in: two
                 // copies running, the phone talking to the other one.
-                Text("⚠︎ Another copy of Go for OpenCode is running — quit it")
+                Text("⚠︎ Another copy of Remote for OpenCode is running — quit it")
             }
             switch opencode.state {
             case let .running(port, version):

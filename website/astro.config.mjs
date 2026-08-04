@@ -5,7 +5,7 @@ import sitemap from "@astrojs/sitemap";
 // Static output for S3 + CloudFront, same shape as the Tomte site.
 export default defineConfig({
   output: "static",
-  site: "https://goforopencode.com",
+  site: "https://remoteforopencode.com",
   trailingSlash: "never",
   integrations: [sitemap()],
   build: {

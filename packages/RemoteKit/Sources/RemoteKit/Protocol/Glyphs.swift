@@ -19,6 +19,11 @@ public enum Glyphs {
         "G": ["####", "#...", "#.##", "#..#", "####"],
         "F": ["####", "#...", "####", "#...", "#..."],
         "R": ["####", "#..#", "####", "#.#.", "#..#"],
+        // M and T strain a 4-wide grid: M's twin peaks become a filled
+        // second row (the New Alphabet's own concession), and T's stem
+        // sits one cell left of true centre because there is no centre.
+        "M": ["#..#", "####", "#..#", "#..#", "#..#"],
+        "T": ["####", ".#..", ".#..", ".#..", ".#.."],
     ]
 
     /// Total width in cells, including inter-letter gaps.

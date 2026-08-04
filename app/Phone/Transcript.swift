@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import SwiftUI
 
 /// The conversation: parts, the turn's diffs, any error, and the working

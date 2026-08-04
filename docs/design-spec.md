@@ -1,4 +1,4 @@
-# Go for OpenCode — design specification
+# Remote for OpenCode — design specification
 
 The target: **Anthropic's typographic restraint, OpenCode's constructed
 geometry.** Warm neutrals, generous air, no divider lines, and lettering
@@ -140,8 +140,8 @@ nobody using a font.
 
 ### 2.2 App icon
 
-Stacked `OC` / `GO`, ink on `canvas`, second row in `inkMuted` — echoing the
-two-tone split in OpenCode's own `open`/`code`.
+Stacked `OC` / `RM` (OpenCode / ReMote), ink on `canvas`, second row in
+`inkMuted` — echoing the two-tone split in OpenCode's own `open`/`code`.
 
 ---
 

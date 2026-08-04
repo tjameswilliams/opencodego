@@ -1,14 +1,14 @@
-# Privacy Policy — Go for OpenCode
+# Privacy Policy — Remote for OpenCode
 
 _Last updated 3 August 2026._
 
-**Go for OpenCode collects nothing.**
+**Remote for OpenCode collects nothing.**
 
 That is the whole policy, but here is what it means concretely.
 
 ## What the app does with your data
 
-The app connects your iPhone to a Mac you own, running the Go for OpenCode
+The app connects your iPhone to a Mac you own, running the Remote for OpenCode
 companion. Your prompts, your code, your files, and the agent's replies
 travel directly between those two devices over a connection that is
 end-to-end encrypted with keys only your devices hold.
@@ -72,4 +72,4 @@ updated date.
 ## Contact
 
 Questions: open an issue at
-<https://github.com/tjameswilliams/opencodego/issues>.
+<https://github.com/tjameswilliams/remote-for-opencode/issues>.

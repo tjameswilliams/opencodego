@@ -1,9 +1,9 @@
 {
-  "name": "goforopencode-website",
+  "name": "remoteforopencode-website",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Marketing site for Go for OpenCode. Static Astro build deployed to S3 + CloudFront.",
+  "description": "Marketing site for Remote for OpenCode. Static Astro build deployed to S3 + CloudFront.",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

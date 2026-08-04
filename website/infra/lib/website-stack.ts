@@ -9,11 +9,19 @@ import * as acm from "aws-cdk-lib/aws-certificatemanager";
 
 export interface WebsiteStackProps extends cdk.StackProps {
   /**
-   * Custom domain (e.g. "goforopencode.com"). Requires the Route 53 hosted
-   * zone that registering the domain creates; www is aliased alongside the
-   * apex. Omit to deploy on the CloudFront domain only.
+   * Custom domain (e.g. "remoteforopencode.com"). Requires the Route 53
+   * hosted zone that registering the domain creates; www is aliased
+   * alongside the apex. Omit to deploy on the CloudFront domain only.
    */
   domainName?: string;
+  /**
+   * The pre-rename domain (goforopencode.com). Copies shipped before the
+   * rename poll its /downloads/appcast.xml forever, so the same
+   * distribution keeps answering for it. Requires its hosted zone, and a
+   * prior deploy that already moved `domainName` off it — the old Apex/Www
+   * records must be gone before the Legacy* ones can claim those names.
+   */
+  legacyDomainName?: string;
 }
 
 /**
@@ -55,16 +63,35 @@ function handler(event) {
 
     let certificate: acm.ICertificate | undefined;
     let zone: route53.IHostedZone | undefined;
+    let legacyZone: route53.IHostedZone | undefined;
     if (props.domainName) {
       zone = route53.HostedZone.fromLookup(this, "Zone", {
         domainName: props.domainName,
       });
+      if (props.legacyDomainName) {
+        legacyZone = route53.HostedZone.fromLookup(this, "LegacyZone", {
+          domainName: props.legacyDomainName,
+        });
+      }
       // CloudFront requires its certificate in us-east-1, which is where
       // this stack is pinned.
       certificate = new acm.Certificate(this, "Certificate", {
         domainName: props.domainName,
-        subjectAlternativeNames: [`www.${props.domainName}`],
-        validation: acm.CertificateValidation.fromDns(zone),
+        subjectAlternativeNames: [
+          `www.${props.domainName}`,
+          ...(props.legacyDomainName
+            ? [props.legacyDomainName, `www.${props.legacyDomainName}`]
+            : []),
+        ],
+        validation:
+          props.legacyDomainName && legacyZone
+            ? acm.CertificateValidation.fromDnsMultiZone({
+                [props.domainName]: zone,
+                [`www.${props.domainName}`]: zone,
+                [props.legacyDomainName]: legacyZone,
+                [`www.${props.legacyDomainName}`]: legacyZone,
+              })
+            : acm.CertificateValidation.fromDns(zone),
       });
     }
 
@@ -100,7 +127,13 @@ function handler(event) {
         { httpStatus: 404, responseHttpStatus: 404, responsePagePath: "/404.html" },
       ],
       domainNames: props.domainName
-        ? [props.domainName, `www.${props.domainName}`]
+        ? [
+            props.domainName,
+            `www.${props.domainName}`,
+            ...(props.legacyDomainName
+              ? [props.legacyDomainName, `www.${props.legacyDomainName}`]
+              : []),
+          ]
         : undefined,
       certificate,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
@@ -115,6 +148,12 @@ function handler(event) {
       new route53.ARecord(this, "Www", { zone, recordName: "www", target });
       new route53.AaaaRecord(this, "ApexV6", { zone, target });
       new route53.AaaaRecord(this, "WwwV6", { zone, recordName: "www", target });
+      if (legacyZone) {
+        new route53.ARecord(this, "LegacyApex", { zone: legacyZone, target });
+        new route53.ARecord(this, "LegacyWww", { zone: legacyZone, recordName: "www", target });
+        new route53.AaaaRecord(this, "LegacyApexV6", { zone: legacyZone, target });
+        new route53.AaaaRecord(this, "LegacyWwwV6", { zone: legacyZone, recordName: "www", target });
+      }
     }
 
     new cdk.CfnOutput(this, "SiteBucketName", { value: siteBucket.bucketName });

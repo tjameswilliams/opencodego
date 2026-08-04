@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
@@ -31,7 +31,7 @@ final class PromptAttachments: ObservableObject {
 
     var isEmpty: Bool { items.isEmpty }
 
-    /// Sizing and encoding both live in GoKit/ImageShaping — the same
+    /// Sizing and encoding both live in RemoteKit/ImageShaping — the same
     /// conventions Tomte validated: ImageIO thumbnailing (EXIF-correct, no
     /// full decode), 1024px at 0.7, refuse anything still over 2 MB after.
     func add(imageData raw: Data, name: String = "image.jpg") {

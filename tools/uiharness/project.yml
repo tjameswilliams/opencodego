@@ -15,14 +15,14 @@ options:
 settings:
   base: { SWIFT_VERSION: "5.9" }
 packages:
-  GoKit:
-    path: ../../packages/GoKit
+  RemoteKit:
+    path: ../../packages/RemoteKit
 targets:
   Harness:
     type: application
     platform: iOS
     dependencies:
-      - package: GoKit
+      - package: RemoteKit
     sources:
       - Harness
       - path: ../../app/Phone/Composer.swift

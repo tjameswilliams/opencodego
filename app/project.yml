@@ -1,4 +1,4 @@
-name: OpenCodeGo
+name: RemoteForOpenCode
 options:
   bundleIdPrefix: com.timwilliams
   deploymentTarget:
@@ -12,8 +12,8 @@ settings:
 packages:
   # Everything both apps share, as a real package: unit-testable on its
   # own, with a deliberate public surface, and ready for a third client.
-  GoKit:
-    path: ../packages/GoKit
+  RemoteKit:
+    path: ../packages/RemoteKit
   # Auto-update for the direct/brew-distributed Mac app. Pinned exactly;
   # bump deliberately alongside SPARKLE_VERSION in scripts/release.sh.
   Sparkle:
@@ -25,7 +25,7 @@ targets:
     platform: macOS
     sources: [MacCompanion]
     dependencies:
-      - package: GoKit
+      - package: RemoteKit
       - package: Sparkle
     entitlements:
       path: MacCompanion/MacCompanion.entitlements
@@ -37,14 +37,14 @@ targets:
         com.apple.security.network.client: true
         com.apple.security.network.server: true
         # Pairing rendezvous: public keys and device names only, in the
-        # user's own private CloudKit database (GoKit/Pairing).
+        # user's own private CloudKit database (RemoteKit/Pairing).
         com.apple.developer.icloud-services: [CloudKit]
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.timwilliams.opencodego
     info:
       path: MacCompanion/Info.plist
       properties:
-        CFBundleDisplayName: Go for OpenCode
+        CFBundleDisplayName: Remote for OpenCode
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Menu bar only — no Dock icon, no app switcher entry.
@@ -56,11 +56,11 @@ targets:
         # rather than minting a second. The tradeoff is a shared blast
         # radius: losing this key would strand updates for both products,
         # so the keychain item is worth backing up.
-        SUFeedURL: https://goforopencode.com/downloads/appcast.xml
+        SUFeedURL: https://remoteforopencode.com/downloads/appcast.xml
         SUPublicEDKey: XRBDz3tt37lMTWp01Ep65tGBHuG/kt2pB2GXyXdoUak=
         SUEnableAutomaticChecks: true
         NSLocalNetworkUsageDescription: >-
-          Go for OpenCode serves your coding agent to your paired iPhone on your
+          Remote for OpenCode serves your coding agent to your paired iPhone on your
           local network.
         NSBonjourServices: ["_opencodego._tcp"]
     settings:
@@ -83,14 +83,14 @@ targets:
     # "required reason" APIs the app touches and that it collects nothing.
     resources: [Phone/PrivacyInfo.xcprivacy]
     dependencies:
-      - package: GoKit
+      - package: RemoteKit
     # Entitlements are hand-maintained rather than generated: the two
     # files differ only in aps-environment, and xcodegen's `entitlements:`
     # would override the per-configuration setting below.
     info:
       path: Phone/Info.plist
       properties:
-        CFBundleDisplayName: Go for OpenCode
+        CFBundleDisplayName: Remote for OpenCode
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Must be set explicitly. Left unset, CFBundleName falls through to
@@ -101,33 +101,37 @@ targets:
         # during processing, after the upload succeeds, so Xcode reports
         # success and the build simply never appears in TestFlight.
         #
-        # 15 characters, which is the ceiling Apple documents for this key.
-        CFBundleName: Go for OpenCode
+        # 13 characters against the 15-character ceiling Apple documents
+        # for this key — "Remote for OpenCode" doesn't fit, and a bare
+        # "Remote" would collide with Apple's own Remote app, which is
+        # exactly the 90129 rejection described above. Users only ever see
+        # CFBundleDisplayName.
+        CFBundleName: Remote for OC
         # The app's own crypto is the pairing channel — Curve25519/ChaChaPoly
         # via CryptoKit — plus HTTPS and CloudKit, all OS-provided: exactly
         # the export-compliance exemption this key claims.
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         NSLocalNetworkUsageDescription: >-
-          Go for OpenCode connects to your Mac on your local network to run your
+          Remote for OpenCode connects to your Mac on your local network to run your
           coding agent. Your code never leaves your machines.
         NSBonjourServices: ["_opencodego._tcp"]
         NSFaceIDUsageDescription: >-
-          Go for OpenCode confirms it's you before approving the agent's
+          Remote for OpenCode confirms it's you before approving the agent's
           commands.
         # Dictating a prompt. Recognition is pinned on-device (see
         # Dictation.swift) — the audio never leaves the phone.
         NSMicrophoneUsageDescription: >-
-          Go for OpenCode uses the microphone so you can dictate prompts to your
+          Remote for OpenCode uses the microphone so you can dictate prompts to your
           coding agent.
         NSSpeechRecognitionUsageDescription: >-
-          Go for OpenCode transcribes your dictated prompts on this device.
+          Remote for OpenCode transcribes your dictated prompts on this device.
           Nothing is sent to Apple or anyone else.
         # Attaching a photo of a screen, a whiteboard, an error. The image
         # goes to your own Mac and nowhere else. The photo library needs no
         # entry — the system picker runs out of process.
         NSCameraUsageDescription: >-
-          Go for OpenCode uses the camera so you can send your agent a photo —
+          Remote for OpenCode uses the camera so you can send your agent a photo —
           a screenshot, a diagram, an error on another screen.
     settings:
       base:

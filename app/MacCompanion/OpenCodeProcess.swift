@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import Foundation
 import OSLog
 
@@ -8,7 +8,7 @@ import OSLog
 /// reports state the menu bar can show.
 ///
 /// The server is deliberately never exposed to the network — 127.0.0.1 only.
-/// The phone reaches it exclusively through GoServer's authenticated,
+/// The phone reaches it exclusively through RemoteServer's authenticated,
 /// encrypted channel; this process is the only trusted gateway.
 @MainActor
 final class OpenCodeProcess: ObservableObject {
@@ -69,6 +69,9 @@ final class OpenCodeProcess: ObservableObject {
     /// clean up, and only ever kills a process that is still ours.
     private static let pidfile = FileManager.default.urls(
         for: .applicationSupportDirectory, in: .userDomainMask
+    // Still the pre-rename directory name: a 1.0 companion that crashed
+    // left its pid there, and moving the path would orphan that child on
+    // the first post-rename launch.
     )[0].appendingPathComponent("OpenCodeGo/opencode.pid")
 
     private func reapStalechild() {

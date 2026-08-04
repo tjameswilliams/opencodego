@@ -1,4 +1,4 @@
-# opencodego
+# remote-for-opencode
 
 A native iPhone app plus a Mac menu-bar companion that lets you start, steer, and
 approve OpenCode coding-agent sessions from your phone — with zero network
@@ -41,7 +41,7 @@ opencode serve (owned child process, never exposed to the network)
 
 ### Transport: lifted from ../ai-macintosh (Tomte)
 
-Proven files to port into `app/GoKit/` (rename Bonjour type, CloudKit container,
+Proven files to port into `app/RemoteKit/` (rename Bonjour type, CloudKit container,
 keychain service; keep the design):
 
 | Source (ai-macintosh) | Provides |
@@ -81,10 +81,10 @@ stream and re-emitting as Wire events.
 ## Repo structure
 
 ```
-opencodego/
+remote-for-opencode/
 ├── PLAN.md                     ← this file
 ├── app/
-│   ├── GoKit/                  ← shared Swift package (iOS + macOS)
+│   ├── RemoteKit/                  ← shared Swift package (iOS + macOS)
 │   │   ├── Transport/          ← Wire, Punch, PunchTransport, Stun, UDPSocket, LineFramer
 │   │   ├── Pairing/            ← Pairing, PairingViews, keychain, CloudKit rendezvous
 │   │   ├── Protocol/           ← mobile protocol v1 types (requests, events, capabilities)
@@ -118,7 +118,7 @@ fails opaquely while `/global/health` reports healthy) — both are documented
 adapter rules.
 
 ### M1 — "Couch milestone": LAN end-to-end (the real first milestone)
-Port GoKit transport + pairing from Tomte (Bonjour TCP path only — punch code
+Port RemoteKit transport + pairing from Tomte (Bonjour TCP path only — punch code
 comes along but isn't the acceptance path). Mac companion manages
 `opencode serve` on localhost. Phone app:
 - pair with the Mac (CloudKit + 6-digit code, as in Tomte)
@@ -139,7 +139,7 @@ the pause switch. Debug: `log stream --predicate 'subsystem ==
 
 ### M3 — Push — implemented 2026-08-02, needs device verification
 CloudKit `CKQuerySubscription` → APNs when a session needs attention.
-Built: Attention records (GoKit/Attention.swift) published by LiveTurns
+Built: Attention records (RemoteKit/Attention.swift) published by LiveTurns
 when an event lands with no live sink; phone subscription + tap →
 ApprovalsView fetching `pending` over Wire. No content in payloads.
 To verify on hardware, together with M2's cellular punch test: background
@@ -152,10 +152,10 @@ assets for the phone. Distinct brand name, "powered by OpenCode /
 unaffiliated" attribution per upstream's naming request.
 
 **Distribution (decided 2026-08-02):**
-- Public source-available repo: github.com/tjameswilliams/opencodego,
+- Public source-available repo: github.com/tjameswilliams/remote-for-opencode,
   PolyForm Noncommercial 1.0.0 (LICENSE.md). We don't vendor OpenCode code,
   so no MIT notices needed — it's a runtime dependency the companion drives.
-- Mac companion: Homebrew **cask** (`brew install --cask opencodego`) with
+- Mac companion: Homebrew **cask** (`brew install --cask remote-for-opencode`) with
   `auto_updates true`, real updates via **Sparkle** in-app (appcast +
   EdDSA-signed dmg, same pipeline Tomte uses — see ai-macintosh project.yml
   and release.sh). Needs: Developer ID signing + notarization, a tap repo
@@ -179,7 +179,7 @@ Still open from the original plan:
 ### M5 — Remote desktop client (roadmap, added 2026-08-02)
 Drive the home Mac's OpenCode from another computer — same product, bigger
 screen. The pieces already in place: protocol v1 is client-agnostic, and
-GoKit (Wire, Punch, Pairing) is shared Swift that compiles on macOS today.
+RemoteKit (Wire, Punch, Pairing) is shared Swift that compiles on macOS today.
 What it actually needs, in order:
 1. **Multi-peer pairing** — the prerequisite, also needed for multi-Mac and
    already flagged in M4: replace the fixed `peer-mac`/`peer-phone` CloudKit

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import GoKit
+@testable import RemoteKit
 
 /// Risk classification decides how loud an approval card is — and whether
 /// "Allow always" is offered at all. It is policy, and policy that nobody
@@ -126,14 +126,14 @@ struct GlyphTests {
 
     @Test("Every glyph occupies exactly five rows")
     func rows() {
-        let cells = Glyphs.cells(of: "OPENCODE GO")
+        let cells = Glyphs.cells(of: "REMOTE FOR OPENCODE")
         #expect(!cells.isEmpty)
         #expect(cells.allSatisfy { $0.1 >= 0 && $0.1 < Glyphs.rows })
     }
 
     @Test("Cells stay inside the reported width")
     func cellsWithinWidth() {
-        let text = "OPENCODE GO"
+        let text = "REMOTE FOR OPENCODE"
         let width = Glyphs.width(of: text)
         #expect(Glyphs.cells(of: text).allSatisfy { $0.0 >= 0 && $0.0 < width })
     }
@@ -141,5 +141,12 @@ struct GlyphTests {
     @Test("Unknown characters advance without drawing")
     func unknownCharacters() {
         #expect(Glyphs.cells(of: "Z").isEmpty)
+    }
+
+    @Test("Every letter of the wordmark has a glyph")
+    func wordmarkCoverage() {
+        for letter in "REMOTE FOR OPENCODE" where letter != " " {
+            #expect(!Glyphs.cells(of: String(letter)).isEmpty, "missing glyph for \(letter)")
+        }
     }
 }

@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import LocalAuthentication
 
 /// The biometric gate in front of "let the agent do it". Approving a

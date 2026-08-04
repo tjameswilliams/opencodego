@@ -30,7 +30,7 @@ public struct PairingPhaseView: View {
                 ProgressView()
                 Text("Looking for your \(peerKind)…")
                     .font(.headline)
-                Text("Open Go for OpenCode on your \(peerKind). The devices find each other through your iCloud account — nothing to type.")
+                Text("Open Remote for OpenCode on your \(peerKind). The devices find each other through your iCloud account — nothing to type.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .font(.callout)

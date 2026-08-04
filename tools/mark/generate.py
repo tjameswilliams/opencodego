@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the OpenCode Go mark.
+"""Generate the Remote for OpenCode mark.
 
 The letterforms sit on the same modular grid OpenCode's own wordmark uses:
 every glyph is a 4-wide x 5-tall arrangement of square cells, no curves, no
@@ -8,11 +8,11 @@ display character, and building on it is how this mark reads as a sibling
 rather than an imitation.
 
     OC
-    GO
+    RM
 
-Two rows, two letters each, one blank cell between letters and between
-rows. Everything below is expressed in grid cells; the pixel size of a cell
-is the only scaling knob.
+Two rows, two letters each — OpenCode above, ReMote below — one blank cell
+between letters and between rows. Everything below is expressed in grid
+cells; the pixel size of a cell is the only scaling knob.
 
 Usage:
     python3 generate.py out.png --size 1024
@@ -24,14 +24,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Glyphs on a 4x5 grid. '#' is an inked cell.
+# Glyphs on a 4x5 grid. '#' is an inked cell. Forms match RemoteKit's
+# Glyphs table — M's twin peaks become a filled second row, the grid's
+# concession at four cells wide.
 GLYPHS = {
     "O": ["####", "#..#", "#..#", "#..#", "####"],
+    "P": ["####", "#..#", "####", "#...", "#..."],
+    "E": ["####", "#...", "####", "#...", "####"],
+    "N": ["#..#", "##.#", "#.##", "#..#", "#..#"],
     "C": ["####", "#...", "#...", "#...", "####"],
-    "G": ["####", "#...", "#.##", "#..#", "####"],
+    "D": ["###.", "#..#", "#..#", "#..#", "###."],
+    "F": ["####", "#...", "####", "#...", "#..."],
+    "R": ["####", "#..#", "####", "#.#.", "#..#"],
+    "M": ["#..#", "####", "#..#", "#..#", "#..#"],
+    "T": ["####", ".#..", ".#..", ".#..", ".#.."],
 }
 
-ROWS = [["O", "C"], ["G", "O"]]
+ROWS = [["O", "C"], ["R", "M"]]
+
+# The README/banner lockup: the product name in primary ink over its
+# qualifier in the quieter tone — the same two-tone split as the icon.
+BANNER_ROWS = ["REMOTE", "FOR OPENCODE"]
 
 GLYPH_W, GLYPH_H = 4, 5
 GAP = 1              # between letters, and between the two rows
@@ -59,6 +72,66 @@ def layout():
                         cells.append((x0 + dx, y0 + dy, row_index))
     height = GLYPH_H * 2 + GAP
     return cells, width, height
+
+
+def text_width(text):
+    """Width in cells of a line of lettering, gaps included."""
+    total = 0
+    for index, char in enumerate(text):
+        if index:
+            total += GAP
+        total += GAP + 2 if char == " " else GLYPH_W
+    return total
+
+
+def text_cells(text):
+    """Every inked cell of a line as (col, row)."""
+    cells = []
+    x = 0
+    for index, char in enumerate(text):
+        if index:
+            x += GAP
+        glyph = GLYPHS.get(char)
+        if glyph is None:
+            x += GAP + 2  # space
+            continue
+        for dy, line in enumerate(glyph):
+            for dx, mark in enumerate(line):
+                if mark == "#":
+                    cells.append((x + dx, dy))
+        x += GLYPH_W
+    return cells
+
+
+def banner_svg(cell_px=20):
+    """The wide README lockup: each BANNER_ROWS line centred, two cells of
+    air between rows. Row 0 takes the primary ink, the rest the quieter
+    tone — the icon's vertical split restated at banner proportions."""
+    row_gap = 2
+    pad_x, pad_y = 6, 4
+    widths = [text_width(line) for line in BANNER_ROWS]
+    block_w = max(widths)
+    canvas_w = (block_w + pad_x * 2) * cell_px
+    rows_h = len(BANNER_ROWS) * GLYPH_H + (len(BANNER_ROWS) - 1) * row_gap
+    canvas_h = (rows_h + pad_y * 2) * cell_px
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{canvas_w}" '
+        f'height="{canvas_h}" viewBox="0 0 {canvas_w} {canvas_h}" '
+        'shape-rendering="crispEdges">',
+        f'<rect width="{canvas_w}" height="{canvas_h}" fill="{GROUND}"/>',
+    ]
+    for row_index, line in enumerate(BANNER_ROWS):
+        fill = INK_PRIMARY if row_index == 0 else INK_SECONDARY
+        offset_x = (pad_x + (block_w - widths[row_index]) / 2) * cell_px
+        offset_y = (pad_y + row_index * (GLYPH_H + row_gap)) * cell_px
+        for col, row in text_cells(line):
+            parts.append(
+                f'<rect x="{offset_x + col * cell_px}" y="{offset_y + row * cell_px}" '
+                f'width="{cell_px}" height="{cell_px}" fill="{fill}"/>'
+            )
+    parts.append("</svg>")
+    return "\n".join(parts)
 
 
 def to_svg(cell_px=64, square=True):
@@ -96,11 +169,17 @@ def main():
     parser.add_argument("out", type=Path)
     parser.add_argument("--size", type=int, default=1024,
                         help="output width in px (png only)")
+    parser.add_argument("--banner", action="store_true",
+                        help="render the wide BANNER_ROWS lockup instead of the icon")
     args = parser.parse_args()
 
-    _, width, height = layout()
-    cell_px = max(1, args.size // (max(width, height) + PAD * 2))
-    svg = to_svg(cell_px)
+    if args.banner:
+        cell_px = max(1, args.size // (max(text_width(l) for l in BANNER_ROWS) + 12))
+        svg = banner_svg(cell_px)
+    else:
+        _, width, height = layout()
+        cell_px = max(1, args.size // (max(width, height) + PAD * 2))
+        svg = to_svg(cell_px)
 
     if args.out.suffix == ".svg":
         args.out.write_text(svg)

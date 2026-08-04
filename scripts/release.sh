@@ -1,8 +1,8 @@
 #!/bin/zsh
-# Build, sign, notarize, and package the Go for OpenCode Mac companion.
+# Build, sign, notarize, and package the Remote for OpenCode Mac companion.
 # Produces:
-#   dist/OpenCodeGo.dmg                    evergreen first-install download
-#   dist/updates/OpenCodeGo-<v>.dmg        versioned artifact for Sparkle
+#   dist/RemoteForOpenCode.dmg                    evergreen first-install download
+#   dist/updates/RemoteForOpenCode-<v>.dmg        versioned artifact for Sparkle
 #   dist/updates/appcast.xml               Sparkle feed (EdDSA-signed)
 #
 #   release.sh <version>                   full run (needs the notary profile)
@@ -40,7 +40,7 @@ SPARKLE_BIN="$HOME/Library/Caches/opencodego/sparkle-$SPARKLE_VERSION/bin"
 # Where shipped apps fetch updates from. GitHub releases host the dmgs; the
 # appcast itself is served from the repo so a release is one upload plus one
 # commit.
-DOWNLOAD_PREFIX="https://goforopencode.com/downloads/"
+DOWNLOAD_PREFIX="https://remoteforopencode.com/downloads/"
 
 VERSION="${1:-}"
 if [[ -z "$VERSION" || "$VERSION" == --* ]]; then
@@ -75,11 +75,11 @@ echo "==> Generating project"
 
 echo "==> Archiving (Release) $VERSION ($BUILD_NUMBER)"
 xcodebuild archive \
-  -project "$APP_DIR/OpenCodeGo.xcodeproj" \
+  -project "$APP_DIR/RemoteForOpenCode.xcodeproj" \
   -scheme MacCompanion \
   -configuration Release \
   -destination "generic/platform=macOS" \
-  -archivePath "$BUILD/OpenCodeGo.xcarchive" \
+  -archivePath "$BUILD/RemoteForOpenCode.xcarchive" \
   -allowProvisioningUpdates \
   MARKETING_VERSION="$VERSION" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
@@ -99,7 +99,7 @@ cat > "$BUILD/ExportOptions.plist" <<PLIST
 </plist>
 PLIST
 xcodebuild -exportArchive \
-  -archivePath "$BUILD/OpenCodeGo.xcarchive" \
+  -archivePath "$BUILD/RemoteForOpenCode.xcarchive" \
   -exportOptionsPlist "$BUILD/ExportOptions.plist" \
   -exportPath "$BUILD/export" \
   -allowProvisioningUpdates \
@@ -111,37 +111,37 @@ APP="$BUILD/export/MacCompanion.app"
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=1 "$APP"
 
-# The bundle ships as Go for OpenCode.app; renaming a signed bundle is safe —
+# The bundle ships as Remote for OpenCode.app; renaming a signed bundle is safe —
 # the seal binds the bundle id, not the folder name.
 STAGE="$BUILD/stage"
 mkdir -p "$STAGE"
-cp -R "$APP" "$STAGE/Go for OpenCode.app"
+cp -R "$APP" "$STAGE/Remote for OpenCode.app"
 
 if ! $SKIP_NOTARIZE; then
   echo "==> Notarizing app"
-  ditto -c -k --keepParent "$STAGE/Go for OpenCode.app" "$BUILD/OpenCodeGo.zip"
-  xcrun notarytool submit "$BUILD/OpenCodeGo.zip" --keychain-profile "$PROFILE" --wait
-  xcrun stapler staple "$STAGE/Go for OpenCode.app"
+  ditto -c -k --keepParent "$STAGE/Remote for OpenCode.app" "$BUILD/RemoteForOpenCode.zip"
+  xcrun notarytool submit "$BUILD/RemoteForOpenCode.zip" --keychain-profile "$PROFILE" --wait
+  xcrun stapler staple "$STAGE/Remote for OpenCode.app"
 fi
 
 echo "==> Building dmg"
 ln -sf /Applications "$STAGE/Applications"
-rm -f "$BUILD/OpenCodeGo.dmg"
-hdiutil create -volname "Go for OpenCode" -srcfolder "$STAGE" -ov -format UDZO -quiet \
-  "$BUILD/OpenCodeGo.dmg"
-codesign --sign "$IDENTITY" --timestamp "$BUILD/OpenCodeGo.dmg"
+rm -f "$BUILD/RemoteForOpenCode.dmg"
+hdiutil create -volname "Remote for OpenCode" -srcfolder "$STAGE" -ov -format UDZO -quiet \
+  "$BUILD/RemoteForOpenCode.dmg"
+codesign --sign "$IDENTITY" --timestamp "$BUILD/RemoteForOpenCode.dmg"
 
 if ! $SKIP_NOTARIZE; then
   echo "==> Notarizing dmg"
-  xcrun notarytool submit "$BUILD/OpenCodeGo.dmg" --keychain-profile "$PROFILE" --wait
-  xcrun stapler staple "$BUILD/OpenCodeGo.dmg"
+  xcrun notarytool submit "$BUILD/RemoteForOpenCode.dmg" --keychain-profile "$PROFILE" --wait
+  xcrun stapler staple "$BUILD/RemoteForOpenCode.dmg"
   echo "==> Gatekeeper assessment"
-  spctl --assess --type open --context context:primary-signature -v "$BUILD/OpenCodeGo.dmg"
+  spctl --assess --type open --context context:primary-signature -v "$BUILD/RemoteForOpenCode.dmg"
 fi
 
 mkdir -p "$DIST/updates"
-cp "$BUILD/OpenCodeGo.dmg" "$DIST/OpenCodeGo.dmg"
-cp "$BUILD/OpenCodeGo.dmg" "$DIST/updates/OpenCodeGo-$VERSION.dmg"
+cp "$BUILD/RemoteForOpenCode.dmg" "$DIST/RemoteForOpenCode.dmg"
+cp "$BUILD/RemoteForOpenCode.dmg" "$DIST/updates/RemoteForOpenCode-$VERSION.dmg"
 
 # ---- Sparkle appcast. generate_appcast reads every dmg in updates/, signs
 # each with the EdDSA key in the login keychain, and (given consecutive
@@ -160,6 +160,6 @@ echo "==> Generating appcast"
   --maximum-versions 5 \
   "$DIST/updates"
 
-shasum -a 256 "$DIST/OpenCodeGo.dmg"
-echo "==> Done: $DIST/OpenCodeGo.dmg + $DIST/updates (OpenCodeGo-$VERSION.dmg, appcast.xml)"
+shasum -a 256 "$DIST/RemoteForOpenCode.dmg"
+echo "==> Done: $DIST/RemoteForOpenCode.dmg + $DIST/updates (RemoteForOpenCode-$VERSION.dmg, appcast.xml)"
 echo "    Next: website/scripts/deploy.sh"

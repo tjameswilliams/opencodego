@@ -1,4 +1,4 @@
-import GoKit
+import RemoteKit
 import Combine
 import CryptoKit
 import Foundation
@@ -7,7 +7,7 @@ import OSLog
 
 /// Serves protocol v1 to the paired phone over two paths at once: TCP
 /// advertised on the LAN via Bonjour, and the punched UDP path that works
-/// from anywhere (GoKit/Transport/Punch.swift). The phone prefers whichever
+/// from anywhere (RemoteKit/Transport/Punch.swift). The phone prefers whichever
 /// answers, and everything above the transport is identical either way.
 /// Structure lifted from Tomte's AgentServer; what each request *does* is
 /// opencodego's own, routed through OpenCodeAdapter.
@@ -17,7 +17,7 @@ import OSLog
 /// traffic is sealed. An unpaired Mac refuses everything — neither being on
 /// the same Wi-Fi nor knowing the address is an identity.
 @MainActor
-final class GoServer: ObservableObject {
+final class RemoteServer: ObservableObject {
     private let logger = Logger(subsystem: "com.timwilliams.opencodego", category: "server")
     private var listener: NWListener?
     private let punch = PunchListener()
@@ -362,9 +362,9 @@ private final class Connection {
             // arrive here. Say that, rather than a bare protocol error.
             var e = Wire.Event(kind: "failed")
             e.text = """
-            The Go for OpenCode app on this Mac doesn't understand "\(request.kind)" \
+            The Remote for OpenCode app on this Mac doesn't understand "\(request.kind)" \
             — it's an older version (\(Bundle.companionVersion)). Quit and \
-            reopen Go for OpenCode on your Mac.
+            reopen Remote for OpenCode on your Mac.
             """
             write(e)
             write(Wire.Event(kind: "done"))

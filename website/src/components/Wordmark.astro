@@ -1,13 +1,13 @@
 ---
 // The wordmark, drawn on the same 4x5 module grid as the app and the icon
-// (see GoKit's Glyphs, tools/mark/generate.py). It is geometry, not type —
+// (see RemoteKit's Glyphs, tools/mark/generate.py). It is geometry, not type —
 // so no font ships, and it is identical across app, icon and site by
 // construction rather than by eye.
 interface Props {
   height?: number;
   text?: string;
 }
-const { height = 18, text = "GO FOR OPENCODE" } = Astro.props;
+const { height = 18, text = "REMOTE FOR OPENCODE" } = Astro.props;
 
 const GLYPHS: Record<string, string[]> = {
   O: ["####", "#..#", "#..#", "#..#", "####"],
@@ -19,6 +19,8 @@ const GLYPHS: Record<string, string[]> = {
   G: ["####", "#...", "#.##", "#..#", "####"],
   F: ["####", "#...", "####", "#...", "#..."],
   R: ["####", "#..#", "####", "#.#.", "#..#"],
+  M: ["#..#", "####", "#..#", "#..#", "#..#"],
+  T: ["####", ".#..", ".#..", ".#..", ".#.."],
 };
 const ROWS = 5;
 const GLYPH_W = 4;
@@ -50,7 +52,7 @@ const cell = Math.max(1, Math.round(height / ROWS));
   viewBox={`0 0 ${width} ${ROWS}`}
   shape-rendering="crispEdges"
   role="img"
-  aria-label={text === "GO FOR OPENCODE" ? "Go for OpenCode" : text}
+  aria-label={text === "REMOTE FOR OPENCODE" ? "Remote for OpenCode" : text}
 >
   {cells.map(([cx, cy]) => <rect x={cx} y={cy} width="1" height="1" fill="currentColor" />)}
 </svg>
