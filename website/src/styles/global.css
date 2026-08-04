@@ -262,6 +262,58 @@ pre code {
   flex: none;
 }
 
+/* Demo videos. Same row-of-phones read as .shots, but each one is a real
+   player with a caption. preload="none" in the markup keeps three clips off
+   the wire until someone actually asks for one — the poster carries the
+   still. */
+.demos-section {
+  margin-top: 3.5rem;
+}
+.demos-section h2 {
+  margin-bottom: 0.25rem;
+}
+
+.demos {
+  /* One width drives both the video and its caption. Sizing the figure off
+     the video instead lets the caption run wider than the phone and get
+     clipped at the scroll container's edge. */
+  --demo-w: calc(min(30rem, 70vh) * 1206 / 2622);
+
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-block: 1.5rem;
+  scroll-snap-type: x mandatory;
+}
+.demos figure {
+  margin: 0;
+  flex: none;
+  scroll-snap-align: start;
+  width: var(--demo-w);
+}
+.demos video {
+  /* Explicit ratio reserves the space before the poster loads, exactly as
+     the screenshot strip does — otherwise the row collapses on first paint. */
+  width: var(--demo-w);
+  height: auto;
+  aspect-ratio: 1206 / 2622;
+  border-radius: var(--radius-block);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  display: block;
+}
+.demos figcaption {
+  margin-top: 0.75rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+.demos figcaption strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .prose h2 {
   margin-top: 2.5rem;
   margin-bottom: 0.75rem;

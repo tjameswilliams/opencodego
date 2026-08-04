@@ -23,6 +23,57 @@ import Base from "../layouts/Base.astro";
     </p>
   </section>
 
+  <section class="demos-section">
+    <h2>See it work</h2>
+    <div class="demos">
+      <figure>
+        <video
+          src="/demos/pairing.mp4"
+          poster="/demos/pairing.jpg"
+          controls
+          muted
+          loop
+          playsinline
+          preload="none"
+        ></video>
+        <figcaption>
+          <strong>Pairing</strong>
+          Confirm a six-digit code on both screens. No accounts, no addresses.
+        </figcaption>
+      </figure>
+      <figure>
+        <video
+          src="/demos/coding.mp4"
+          poster="/demos/coding.jpg"
+          controls
+          muted
+          loop
+          playsinline
+          preload="none"
+        ></video>
+        <figcaption>
+          <strong>A session</strong>
+          Slash commands, live thinking, and tool calls as they happen.
+        </figcaption>
+      </figure>
+      <figure>
+        <video
+          src="/demos/diff.mp4"
+          poster="/demos/diff.jpg"
+          controls
+          muted
+          loop
+          playsinline
+          preload="none"
+        ></video>
+        <figcaption>
+          <strong>Reviewing changes</strong>
+          Every accumulated change, per file, line by line.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
   <div class="shots">
     <img src="/shots/01.png" alt="A coding agent working on a fix, with its plan and streamed answer" loading="lazy" />
     <img src="/shots/02.png" alt="An approval prompt for a risky shell command" loading="lazy" />
