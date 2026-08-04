@@ -92,13 +92,26 @@ France also requires a separate declaration for apps distributed there.
       profile grants. The production value only appears once exported with
       `method: app-store` against a distribution profile — check it there,
       not in the archive.
-- [ ] ⚠️ **Confirm the CloudKit container is deployed to the Production
-      environment.** This is now the largest un-cleared risk. Development
-      schema does not exist in production, so pairing would fail for every
-      real user *and for the reviewer* — who would see a pairing screen
-      that never succeeds and reject the app as non-functional. Nothing
-      done so far tests this: every pairing to date ran against the
-      development environment.
+- [x] **CloudKit container deployed to Production** (2026-08-03).
+      `iCloud.com.timwilliams.opencodego` — note the team is Tim Williams
+      (7NHJT99NX8), not the console's default team, and the account also
+      holds `.household` and `.pairspike` containers with their own
+      undeployed changes; deploy the wrong one and you ship someone else's
+      schema.
+
+      Deployed: create `Attention` (10 fields) and `DevicePeer` (14), their
+      indexes (12 and 18), and the standard `_world`/`_icloud`/`_creator`
+      role updates. All creates, no deletes. Both types were checked
+      against the source first — `Attention.swift:16` and
+      `Pairing.swift:294` — because production schema is additive-only and
+      a record type deployed by mistake can never be removed. Verified by
+      loading the Production environment directly rather than trusting the
+      success dialog.
+
+      **Consequence worth knowing:** schema deploys, *records* do not.
+      Existing pairings live in the Development environment and will not
+      exist in Production, so a TestFlight or App Store build starts with
+      no paired devices and must pair fresh.
 - [x] Screenshots for the 6.5" slot (4 uploaded).
 - [ ] **App previews** — encoded and waiting at
       `~/Downloads/goforopencode-previews/`, but they must be dragged into
