@@ -38,19 +38,55 @@ struct WorkspaceSidebar: View {
         }
     }
 
-    /// v1: one row, this Mac. M3 turns this into the paired-peer list with
-    /// presence dots per Mac.
+    /// This Mac, then every paired Mac. The active one's dot is honest —
+    /// green until a request fails, red after; an inactive remote Mac gets
+    /// the neutral dot because nothing has been asked of it yet.
+    @Environment(\.openWindow) private var openWindow
+
     private var macSection: some View {
-        Section("Mac") {
-            Label {
-                Text("This Mac")
-            } icon: {
-                Circle()
-                    .fill(state.error == nil ? .green : .red)
-                    .frame(width: 8, height: 8)
+        Section("Macs") {
+            macRow(name: "This Mac", peer: nil)
+            ForEach(state.pairedMacs) { peer in
+                macRow(name: peer.name, peer: peer)
             }
-            .accessibilityLabel(state.error == nil ? "This Mac, connected" : "This Mac, unreachable")
+            Button {
+                openWindow(id: "devices")
+            } label: {
+                Label("Pair another Mac…", systemImage: "plus")
+                    .font(.callout)
+                    .foregroundStyle(Color.inkMuted)
+            }
+            .buttonStyle(.plain)
         }
+    }
+
+    private func macRow(name: String, peer: PairedPeer?) -> some View {
+        let active = state.activePeer?.id == peer?.id
+        return Button {
+            state.selectPeer(peer)
+        } label: {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(active ? (state.error == nil ? Color.green : .red) : Color.gray.opacity(0.5))
+                    .frame(width: 8, height: 8)
+                Text(name)
+                    .fontWeight(active ? .semibold : .regular)
+                if peer?.legacy == true {
+                    Spacer()
+                    Text("update")
+                        .font(.caption2.smallCaps())
+                        .foregroundStyle(Color.inkFaint)
+                        .help("This Mac runs a pre-1.2 companion — update it for the best connection.")
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            active
+                ? "\(name), active\(state.error == nil ? "" : ", unreachable")"
+                : name
+        )
     }
 
     private var searchField: some View {

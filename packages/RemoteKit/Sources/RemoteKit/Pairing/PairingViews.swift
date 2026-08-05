@@ -6,8 +6,12 @@ import SwiftUI
 /// which is the entire UX ("open the app on both devices, tap approve").
 public struct PairingPhaseView: View {
     @ObservedObject var session: PairingSession
-    /// "iPhone" on the Mac, "Mac" on the phone — the thing to open.
-    private var peerKind: String { DeviceRole.current == .mac ? "iPhone" : "Mac" }
+    /// The thing to open on the other side. A Mac can pair with an iPhone
+    /// *or* another Mac now, so before anything answers it can only say
+    /// "other device"; the phone's peer is still always a Mac.
+    private var peerKind: String {
+        DeviceRole.current == .mac ? "other device" : "Mac"
+    }
 
     public init(session: PairingSession) {
         self.session = session

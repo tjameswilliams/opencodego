@@ -44,6 +44,23 @@ Tomte runs.
    `{"opencodego": "remote-for-opencode"}` — so anyone who installed 1.0
    under the old token follows `brew upgrade` instead of orphaning.
 
+## Before 1.2 ships (one-time)
+
+Multi-peer pairing adds two fields to the `DevicePeer` record type:
+`deviceID` (String) and `deviceIDs` (String List, on the directory
+record). The Development environment creates them automatically on first
+write; **Production does not** — deploy the schema change in the CloudKit
+console (same container, `iCloud.com.timwilliams.opencodego`, team
+7NHJT99NX8 — mind the neighbouring containers) before any 1.2 build or
+TestFlight phone build goes out. Additive-only, so shipped 1.1 builds are
+unaffected. Skipping this makes modern pairing fail only in production
+builds, which is the worst kind of invisible.
+
+Also rehearse the migration before publishing: update a Mac with a live
+1.1 phone pairing and confirm the phone reconnects without re-pairing
+(the store migration preserves the peer key bytes; the pairing survives
+by construction, but the construction deserves one witness).
+
 ## Each release
 
 ```sh

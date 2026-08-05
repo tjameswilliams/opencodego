@@ -8,9 +8,11 @@ public enum LinkTarget {
     /// key is `LoopbackTrust`'s — minted at launch, never persisted — so a
     /// workspace works on a Mac with zero pairings.
     case local(SymmetricKey)
-    /// The paired device, wherever it is: Bonjour on the LAN, the punched
-    /// UDP path from anywhere.
+    /// The primary paired device, wherever it is: Bonjour on the LAN, the
+    /// punched UDP path from anywhere.
     case paired
+    /// One specific paired peer — the workspace talking to a chosen Mac.
+    case peer(PairedPeer)
 }
 
 /// One request to a companion: find a path → Wire handshake → sealed
@@ -81,7 +83,8 @@ public final class CompanionLink {
                     await self.runLocal(key: key, request: request, continuation: continuation)
                 }
             case .paired:
-                guard let channelKey = try? PairingStore.channelKey() else {
+                guard let peer = PairingStore.primary,
+                      let channelKey = try? PairingStore.channelKey(for: peer) else {
                     self.fail(
                         "This \(Self.selfNoun) isn't paired with a Mac yet.",
                         continuation
@@ -89,8 +92,26 @@ public final class CompanionLink {
                     return
                 }
                 Task { @MainActor in
+                    // The shared client, not forPeer(_:): the phone calls
+                    // PunchClient.shared.invalidate() on foregrounding, and
+                    // that must hit the instance that actually dials.
                     await self.runPaired(
-                        channelKey: channelKey, request: request, continuation: continuation
+                        peer, punch: PunchClient.shared, channelKey: channelKey,
+                        request: request, continuation: continuation
+                    )
+                }
+            case let .peer(peer):
+                guard let channelKey = try? PairingStore.channelKey(for: peer) else {
+                    self.fail(
+                        "The pairing with \(peer.name) is broken — pair the two Macs again.",
+                        continuation
+                    )
+                    return
+                }
+                Task { @MainActor in
+                    await self.runPaired(
+                        peer, punch: PunchClient.forPeer(peer), channelKey: channelKey,
+                        request: request, continuation: continuation
                     )
                 }
             }
@@ -131,6 +152,8 @@ public final class CompanionLink {
     /// The paired path: LAN candidates on trial first, then the punch.
     @MainActor
     private func runPaired(
+        _ peer: PairedPeer,
+        punch: PunchClient,
         channelKey: SymmetricKey,
         request: Wire.Request,
         continuation: AsyncStream<Wire.Event>.Continuation
@@ -158,7 +181,7 @@ public final class CompanionLink {
                 discard(lan)
             }
         }
-        switch await PunchClient.shared.open() {
+        switch await punch.open() {
         case let .success(punched):
             transport = punched
             switch await exchange(

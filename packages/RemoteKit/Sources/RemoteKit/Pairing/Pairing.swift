@@ -30,8 +30,9 @@ public enum DeviceRole: String, Codable, Sendable {
     case mac
     case phone
 
-    /// One Mac and one phone per Apple ID for now, so record names are
-    /// fixed and fetched by ID — no queries, no queryable-index setup.
+    /// The fixed record name of the pre-multi-peer scheme ("peer-mac" /
+    /// "peer-phone"). Still written and read for `legacy` peers — a 1.1
+    /// companion in the wild knows no other rendezvous.
     var recordName: String { "peer-\(rawValue)" }
     public var peer: DeviceRole { self == .mac ? .phone : .mac }
 
@@ -43,6 +44,26 @@ public enum DeviceRole: String, Codable, Sendable {
         .phone
         #endif
     }
+
+    /// The word for a device of this role on someone else's screen.
+    public var noun: String { self == .mac ? "Mac" : "iPhone" }
+}
+
+/// A stable identity per install, minted once. This is what lets any
+/// number of devices share one Apple ID: each publishes its own
+/// `device-<id>` record instead of fighting over a fixed name per role.
+public enum DeviceID {
+    static let key = "opencodego.deviceID"
+
+    public static var current: String {
+        if let id = PairingStore.defaults.string(forKey: key) { return id }
+        let id = UUID().uuidString
+        PairingStore.defaults.set(id, forKey: key)
+        return id
+    }
+
+    /// The CloudKit record name for a device id.
+    public static func recordName(for id: String) -> String { "device-\(id)" }
 }
 
 /// What this device calls itself on the other one's screen.
@@ -67,9 +88,13 @@ struct PeerRecord {
     /// LAN addresses plus the reflexive one STUN reported. Empty until the
     /// device has published any.
     var endpoints: [String] = []
-    /// Set by the phone when it starts dialling, so the Mac knows to punch
-    /// back now rather than at its next lazy poll.
+    /// Set by a client when it starts dialling, so the server knows to
+    /// punch back now rather than at its next lazy poll.
     var connectRequestedAt: Date?
+    /// The publisher's stable install id. Absent on records written by
+    /// pre-multi-peer builds — which is exactly how a legacy peer is
+    /// recognised during pairing.
+    var deviceID: String?
 }
 
 public enum PairingError: Error, LocalizedError {
@@ -199,9 +224,8 @@ public struct PairingCrypto {
 
 // MARK: - Persisted pairing state
 
-/// The one fact pairing produces: who my peer is. The peer's public key is
-/// public data, so UserDefaults is fine; the channel key is re-derived from
-/// the keychain private key on demand rather than stored.
+/// The pre-multi-peer persisted shape, kept for migration and for the few
+/// call sites that still think in terms of "the" peer.
 public struct PairedDevice: Codable, Equatable {
     public var name: String
     public var role: DeviceRole
@@ -209,8 +233,41 @@ public struct PairedDevice: Codable, Equatable {
     public var pairedAt: Date
 }
 
+/// One paired peer among possibly several. The peer's public key is public
+/// data, so UserDefaults is fine; the channel key is re-derived from the
+/// keychain private key on demand rather than stored.
+public struct PairedPeer: Codable, Equatable, Identifiable, Sendable {
+    /// The peer's `DeviceID`. Peers migrated from (or paired with) a
+    /// pre-multi-peer build get a synthetic `legacy-<role>` id.
+    public var id: String
+    public var name: String
+    public var role: DeviceRole
+    public var pubKeyAgreement: Data
+    public var pairedAt: Date
+    /// True when this peer rendezvouses through the old fixed record names
+    /// (`peer-mac`/`peer-phone`) because it runs a pre-multi-peer build.
+    /// Dies naturally when the peer is re-paired after updating.
+    public var legacy: Bool
+
+    public init(
+        id: String, name: String, role: DeviceRole,
+        pubKeyAgreement: Data, pairedAt: Date, legacy: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.pubKeyAgreement = pubKeyAgreement
+        self.pairedAt = pairedAt
+        self.legacy = legacy
+    }
+}
+
 public enum PairingStore {
-    private static let key = "opencodego.pairedDevice"
+    /// Injectable for tests; the app never touches it.
+    nonisolated(unsafe) static var defaults = UserDefaults.standard
+
+    private static let legacyKey = "opencodego.pairedDevice"
+    private static let peersKey = "opencodego.pairedPeers"
     private static let everKey = "opencodego.hasEverPaired"
     public static let changed = Notification.Name("PairingStore.changed")
 
@@ -225,33 +282,97 @@ public enum PairingStore {
     /// something is broken or they unpaired on purpose — pitching the product
     /// to them is noise sitting between them and the fix.
     public static var hasEverPaired: Bool {
-        UserDefaults.standard.bool(forKey: everKey)
+        defaults.bool(forKey: everKey)
     }
 
-    public static func load() -> PairedDevice? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(PairedDevice.self, from: data)
+    // MARK: The peer list
+
+    public static func peers() -> [PairedPeer] {
+        migrateIfNeeded()
+        guard let data = defaults.data(forKey: peersKey) else { return [] }
+        return (try? JSONDecoder().decode([PairedPeer].self, from: data)) ?? []
     }
 
-    public static func save(_ device: PairedDevice) {
-        if let data = try? JSONEncoder().encode(device) {
-            UserDefaults.standard.set(data, forKey: key)
+    /// Adds or replaces (same id, or same public key — a re-pair of the
+    /// same install under a new id must not leave the old entry behind).
+    public static func add(_ peer: PairedPeer) {
+        var list = peers().filter {
+            $0.id != peer.id && $0.pubKeyAgreement != peer.pubKeyAgreement
         }
-        UserDefaults.standard.set(true, forKey: everKey)
-        NotificationCenter.default.post(name: changed, object: nil)
+        list.append(peer)
+        persist(list)
+        defaults.set(true, forKey: everKey)
+    }
+
+    public static func remove(_ id: String) {
+        persist(peers().filter { $0.id != id })
     }
 
     public static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
+        defaults.removeObject(forKey: peersKey)
+        defaults.removeObject(forKey: legacyKey)
         NotificationCenter.default.post(name: changed, object: nil)
     }
 
-    /// The symmetric key shared with the paired device, derived fresh from
-    /// the local private key and the stored peer public key.
+    /// The peer the single-peer call sites mean: the counterpart role's
+    /// first entry (the phone's Mac; the Mac's phone), falling back to
+    /// anything at all.
+    public static var primary: PairedPeer? {
+        let list = peers()
+        return list.first { $0.role == DeviceRole.current.peer } ?? list.first
+    }
+
+    /// Transitional shim over `primary` for pre-multi-peer call sites.
+    public static func load() -> PairedDevice? {
+        guard let peer = primary else { return nil }
+        return PairedDevice(
+            name: peer.name, role: peer.role,
+            pubKeyAgreement: peer.pubKeyAgreement, pairedAt: peer.pairedAt
+        )
+    }
+
+    // MARK: Channel keys
+
+    /// The symmetric key shared with the primary peer.
     public static func channelKey() throws -> SymmetricKey {
-        guard let peer = load() else { throw PairingError.notPaired }
+        guard let peer = primary else { throw PairingError.notPaired }
+        return try channelKey(for: peer)
+    }
+
+    /// The symmetric key shared with one specific peer, derived fresh from
+    /// the local private key and that peer's stored public key.
+    public static func channelKey(for peer: PairedPeer) throws -> SymmetricKey {
         let mine = try PairingKeyStore.agreementKey()
         return try PairingCrypto(myKey: mine, peerPub: peer.pubKeyAgreement).channelKey
+    }
+
+    // MARK: Migration
+
+    /// The single-device blob becomes a one-entry list, `legacy: true`,
+    /// with the public key bytes preserved exactly — that byte identity is
+    /// what keeps the shipped pairing authenticating with no user action.
+    /// The old blob stays behind (harmless) so a downgrade still works.
+    private static func migrateIfNeeded() {
+        guard defaults.data(forKey: peersKey) == nil,
+              let data = defaults.data(forKey: legacyKey),
+              let old = try? JSONDecoder().decode(PairedDevice.self, from: data)
+        else { return }
+        let migrated = PairedPeer(
+            id: "legacy-\(old.role.rawValue)",
+            name: old.name, role: old.role,
+            pubKeyAgreement: old.pubKeyAgreement,
+            pairedAt: old.pairedAt, legacy: true
+        )
+        if let encoded = try? JSONEncoder().encode([migrated]) {
+            defaults.set(encoded, forKey: peersKey)
+        }
+    }
+
+    private static func persist(_ list: [PairedPeer]) {
+        if let data = try? JSONEncoder().encode(list) {
+            defaults.set(data, forKey: peersKey)
+        }
+        NotificationCenter.default.post(name: changed, object: nil)
     }
 }
 
@@ -285,8 +406,29 @@ final class PairingCloud: Sendable {
 
     /// Upsert our own DevicePeer record (fetch-modify-save; retries once on
     /// a lost conflict since we are the only writer of our own record).
-    func upsertSelf(_ me: PeerRecord, fields: Fields) async throws {
-        let id = CKRecord.ID(recordName: me.role.recordName)
+    ///
+    /// Always writes the modern `device-<id>` record and keeps this device
+    /// listed in the directory. When `includeLegacy`, the old fixed-name
+    /// record is written too — the only rendezvous a pre-multi-peer peer
+    /// knows to look at.
+    func upsertSelf(_ me: PeerRecord, fields: Fields, includeLegacy: Bool = false) async throws {
+        var mine = me
+        mine.deviceID = DeviceID.current
+        try await upsert(mine, fields: fields, recordName: DeviceID.recordName(for: DeviceID.current))
+        await ensureListed(DeviceID.current)
+        if includeLegacy {
+            // The legacy record carries no deviceID on purpose: its absence
+            // is how *we* recognise legacy records, and an old build would
+            // simply ignore the field anyway — better to keep the two
+            // schemes visibly distinct.
+            var legacy = me
+            legacy.deviceID = nil
+            try await upsert(legacy, fields: fields, recordName: me.role.recordName)
+        }
+    }
+
+    private func upsert(_ me: PeerRecord, fields: Fields, recordName: String) async throws {
+        let id = CKRecord.ID(recordName: recordName)
         let record: CKRecord
         if let existing = try? await db.record(for: id) {
             record = existing
@@ -310,6 +452,7 @@ final class PairingCloud: Sendable {
         record["pubKeyAgreement"] = me.pubKeyAgreement
         record["pubKeySigning"] = me.pubKeySigning
         record["heartbeatAt"] = me.heartbeatAt
+        record["deviceID"] = me.deviceID
         if fields.contains(.approval) { record["approvedAt"] = me.approvedAt }
         if fields.contains(.endpoints) { record["endpoints"] = me.endpoints }
         if fields.contains(.connectRequest) {
@@ -317,9 +460,74 @@ final class PairingCloud: Sendable {
         }
     }
 
-    /// Fetch the counterpart's record, nil until it exists.
-    func fetchPeer(of role: DeviceRole) async throws -> PeerRecord? {
-        let id = CKRecord.ID(recordName: role.peer.recordName)
+    // MARK: The directory
+
+    /// One well-known record lists every live device id, because fetching
+    /// by name needs no queryable indexes — the same reasoning that chose
+    /// fixed names originally, kept under the new scheme.
+    private static let directoryName = "device-directory"
+
+    private func directoryIDs() async -> [String] {
+        guard let record = try? await db.record(
+            for: CKRecord.ID(recordName: Self.directoryName)
+        ) else { return [] }
+        return record["deviceIDs"] as? [String] ?? []
+    }
+
+    /// Fetch-modify-save with a union merge on conflict: several devices
+    /// legitimately edit the directory at once.
+    private func editDirectory(_ edit: @escaping ([String]) -> [String]) async {
+        let id = CKRecord.ID(recordName: Self.directoryName)
+        let record: CKRecord
+        if let existing = try? await db.record(for: id) {
+            record = existing
+        } else {
+            record = CKRecord(recordType: "DevicePeer", recordID: id)
+        }
+        let current = record["deviceIDs"] as? [String] ?? []
+        let edited = edit(current)
+        guard edited != current else { return }
+        record["deviceIDs"] = edited
+        do {
+            _ = try await db.save(record)
+        } catch let e as CKError where e.code == .serverRecordChanged {
+            if let server = e.serverRecord {
+                let theirs = server["deviceIDs"] as? [String] ?? []
+                server["deviceIDs"] = Array(Set(edit(theirs)).union(theirs)).sorted()
+                _ = try? await db.save(server)
+            }
+        } catch {
+            Punch.logger.error("directory write failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func ensureListed(_ deviceID: String) async {
+        await editDirectory { ids in
+            ids.contains(deviceID) ? ids : ids + [deviceID]
+        }
+    }
+
+    func delist(_ deviceID: String) async {
+        await editDirectory { ids in ids.filter { $0 != deviceID } }
+    }
+
+    // MARK: Reading peers
+
+    /// Every other device's record, via the directory. Records that fail to
+    /// parse or list ourselves are skipped.
+    func fetchPeers() async -> [PeerRecord] {
+        var out: [PeerRecord] = []
+        for id in await directoryIDs() where id != DeviceID.current {
+            if let record = try? await fetchPeer(named: DeviceID.recordName(for: id)) {
+                out.append(record)
+            }
+        }
+        return out
+    }
+
+    /// One record by name, nil until it exists.
+    func fetchPeer(named recordName: String) async throws -> PeerRecord? {
+        let id = CKRecord.ID(recordName: recordName)
         do {
             let r = try await db.record(for: id)
             guard
@@ -338,18 +546,50 @@ final class PairingCloud: Sendable {
                 heartbeatAt: beat,
                 approvedAt: r["approvedAt"] as? Date,
                 endpoints: r["endpoints"] as? [String] ?? [],
-                connectRequestedAt: r["connectRequestedAt"] as? Date
+                connectRequestedAt: r["connectRequestedAt"] as? Date,
+                deviceID: r["deviceID"] as? String
             )
         } catch let e as CKError where e.code == .unknownItem {
             return nil
         }
     }
 
-    /// Remove both records so a future pairing starts clean.
+    /// The counterpart's legacy fixed-name record, nil until it exists.
+    func fetchPeer(of role: DeviceRole) async throws -> PeerRecord? {
+        try await fetchPeer(named: role.peer.recordName)
+    }
+
+    /// Remove one peer's rendezvous state after an unpair.
+    func remove(peer: PairedPeer) async {
+        if peer.legacy {
+            // The legacy scheme has exactly two records; a legacy unpair
+            // wipes the pair of them, matching the old behavior.
+            _ = try? await db.deleteRecord(withID: CKRecord.ID(recordName: peer.role.recordName))
+            _ = try? await db.deleteRecord(withID: CKRecord.ID(recordName: DeviceRole.current.recordName))
+        } else {
+            _ = try? await db.deleteRecord(
+                withID: CKRecord.ID(recordName: DeviceID.recordName(for: peer.id))
+            )
+            await delist(peer.id)
+        }
+    }
+
+    /// Remove everything this scheme has ever written, so a future pairing
+    /// starts clean: both legacy names, our own device record, and every
+    /// directory entry we can see.
     func reset() async {
         for role in [DeviceRole.mac, .phone] {
             _ = try? await db.deleteRecord(withID: CKRecord.ID(recordName: role.recordName))
         }
+        for id in await directoryIDs() {
+            _ = try? await db.deleteRecord(
+                withID: CKRecord.ID(recordName: DeviceID.recordName(for: id))
+            )
+        }
+        _ = try? await db.deleteRecord(
+            withID: CKRecord.ID(recordName: DeviceID.recordName(for: DeviceID.current))
+        )
+        _ = try? await db.deleteRecord(withID: CKRecord.ID(recordName: Self.directoryName))
     }
 }
 
@@ -412,12 +652,27 @@ public final class PairingSession: ObservableObject {
         Task { try? await publishSelf() }
     }
 
-    /// Forget the paired device and wipe the rendezvous records so both
-    /// sides can start over.
-    public func unpair() {
+    /// Forget one paired peer and remove its rendezvous state. Removing the
+    /// last peer resets the key material too — a device with no pairings
+    /// should start its next one from fresh keys, and leaving old keys
+    /// behind is what turns "unpair and try again" into a re-pair that
+    /// still can't read its own key. With other peers remaining the keys
+    /// must obviously stay: they are those pairings.
+    public func unpair(_ peer: PairedPeer) {
+        PairingStore.remove(peer.id)
+        stop()
+        if PairingStore.peers().isEmpty {
+            PairingKeyStore.reset()
+            PairingStore.clear()
+            Task { await cloud.reset() }
+        } else {
+            Task { await cloud.remove(peer: peer) }
+        }
+    }
+
+    /// Forget every pairing and wipe the rendezvous clean.
+    public func unpairAll() {
         PairingStore.clear()
-        // Key material goes too. Leaving it behind is what turns "unpair
-        // and try again" into a re-pair that still can't read its own key.
         PairingKeyStore.reset()
         stop()
         Task { await cloud.reset() }
@@ -451,7 +706,7 @@ public final class PairingSession: ObservableObject {
 
     private func tick() async throws {
         guard let agreementKey else { return }
-        guard let found = try await cloud.fetchPeer(of: role) else {
+        guard let found = await scanForCandidate() else {
             try await publishSelf()
             return
         }
@@ -461,7 +716,7 @@ public final class PairingSession: ObservableObject {
         let fresh = Date().timeIntervalSince(found.heartbeatAt) < 120
         if peer?.pubKeyAgreement != found.pubKeyAgreement {
             crypto = try PairingCrypto(myKey: agreementKey, peerPub: found.pubKeyAgreement)
-            Self.logger.notice("peer '\(found.deviceName, privacy: .public)' found (heartbeat \(fresh ? "fresh" : "stale", privacy: .public))")
+            Self.logger.notice("peer '\(found.deviceName, privacy: .public)' found (heartbeat \(fresh ? "fresh" : "stale", privacy: .public), \(found.deviceID == nil ? "legacy" : "modern", privacy: .public))")
         }
         peer = found
         guard let crypto, fresh else {
@@ -483,12 +738,31 @@ public final class PairingSession: ObservableObject {
         try await publishSelf()
     }
 
+    /// The device on the other side of this pairing attempt: any *fresh*
+    /// record that isn't a peer we already hold — the directory's modern
+    /// records first, then the legacy fixed name, which is all a
+    /// pre-multi-peer build ever writes. Ties go to the freshest heartbeat:
+    /// pairing means "the device whose screen is open right now".
+    private func scanForCandidate() async -> PeerRecord? {
+        let known = Set(PairingStore.peers().map(\.pubKeyAgreement))
+        var candidates = await cloud.fetchPeers()
+            .filter { !known.contains($0.pubKeyAgreement) }
+        if let legacy = try? await cloud.fetchPeer(of: role),
+           !known.contains(legacy.pubKeyAgreement),
+           !candidates.contains(where: { $0.pubKeyAgreement == legacy.pubKeyAgreement }) {
+            candidates.append(legacy)
+        }
+        return candidates.max { $0.heartbeatAt < $1.heartbeatAt }
+    }
+
     private func complete(with found: PeerRecord) {
-        PairingStore.save(PairedDevice(
+        PairingStore.add(PairedPeer(
+            id: found.deviceID ?? "legacy-\(found.role.rawValue)",
             name: found.deviceName,
             role: found.role,
             pubKeyAgreement: found.pubKeyAgreement,
-            pairedAt: Date()
+            pairedAt: Date(),
+            legacy: found.deviceID == nil
         ))
         phase = .paired(name: found.deviceName)
         Self.logger.notice("paired with '\(found.deviceName, privacy: .public)'")
@@ -498,6 +772,9 @@ public final class PairingSession: ObservableObject {
 
     private func publishSelf() async throws {
         guard let agreementKey else { return }
+        // Legacy included while pairing: a 1.1 companion only ever looks at
+        // the fixed name, and this is the one moment we must be findable by
+        // whatever is out there.
         try await cloud.upsertSelf(PeerRecord(
             deviceName: deviceName,
             role: role,
@@ -505,6 +782,6 @@ public final class PairingSession: ObservableObject {
             pubKeySigning: (try PairingKeyStore.signingKey()).publicKey.rawRepresentation,
             heartbeatAt: Date(),
             approvedAt: approvedLocally ? Date() : nil
-        ), fields: [.identity, .approval])
+        ), fields: [.identity, .approval], includeLegacy: true)
     }
 }

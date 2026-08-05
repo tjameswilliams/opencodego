@@ -194,12 +194,14 @@ private final class Connection {
             return
         }
         // Key possession is identity: the tag is tried against every trust
-        // this Mac holds — its own in-process loopback key first, then the
-        // paired device's channel key. Whichever verifies says who this is;
+        // this Mac holds — its own in-process loopback key first, then each
+        // paired peer's channel key. Whichever verifies says who this is;
         // nothing on the wire claims anything.
         var candidates: [(key: SymmetricKey, loopback: Bool)] = [(LoopbackTrust.key, true)]
-        if let channelKey = try? PairingStore.channelKey() {
-            candidates.append((channelKey, false))
+        for peer in PairingStore.peers() {
+            if let channelKey = try? PairingStore.channelKey(for: peer) {
+                candidates.append((channelKey, false))
+            }
         }
         guard let matched = candidates.first(where: {
             Wire.Security.verify(
@@ -207,7 +209,7 @@ private final class Connection {
                 serverNonce: serverNonce, clientNonce: auth.nonce, name: auth.name
             )
         }) else {
-            if PairingStore.load() == nil {
+            if PairingStore.peers().isEmpty {
                 refuse("This Mac isn't paired with a device yet. Open Devices in the Mac menu bar app to pair.")
             } else {
                 logger.error("auth failed for '\(auth.name, privacy: .public)'")

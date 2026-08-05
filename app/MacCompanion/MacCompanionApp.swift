@@ -110,15 +110,15 @@ struct StatusMenu: View {
             }
             if let name = phone.connectedName {
                 Text("\(name) connected")
-            } else if PairingStore.load() != nil {
-                Text("Phone not connected")
+            } else if !PairingStore.peers().isEmpty {
+                Text("No device connected")
             }
             Divider()
             Button("Open Workspace") {
                 openWindow(id: "workspace")
                 NSApp.activate(ignoringOtherApps: true)
             }
-            Button(PairingStore.load() == nil ? "Pair iPhone…" : "Devices…") {
+            Button(PairingStore.peers().isEmpty ? "Pair a Device…" : "Devices…") {
                 openWindow(id: "devices")
                 NSApp.activate(ignoringOtherApps: true)
             }
@@ -139,56 +139,94 @@ struct StatusMenu: View {
     }
 }
 
+/// Every paired peer — iPhones and Macs alike — plus the door to pairing
+/// another. Revocation is per-peer now; the last revoke also wipes the key
+/// material and rendezvous, matching the old single-device behavior.
 struct DevicesWindow: View {
     @StateObject private var pairing = PairingSession()
-    @StateObject private var phone = ConnectedClients.shared
-    @State private var paired = PairingStore.load()
-    @State private var confirmingRevoke = false
+    @StateObject private var clients = ConnectedClients.shared
+    @State private var peers = PairingStore.peers()
+    @State private var revoking: PairedPeer?
+    @State private var addingDevice = false
 
     var body: some View {
         VStack(spacing: 16) {
-            if let paired {
-                Image(systemName: "iphone.gen3")
-                    .font(.largeTitle)
-                    .foregroundStyle(.tint)
-                Text(paired.name).font(.headline)
-                Group {
-                    if let name = phone.connectedName {
-                        Label("\(name) connected now", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                    } else {
-                        Text("Paired \(paired.pairedAt.formatted(date: .abbreviated, time: .shortened))")
-                            .foregroundStyle(.secondary)
+            if peers.isEmpty || addingDevice {
+                PairingPhaseView(session: pairing)
+                if !peers.isEmpty {
+                    Button("Back to Devices") {
+                        addingDevice = false
+                        pairing.stop()
+                    }
+                    .buttonStyle(.link)
+                }
+            } else {
+                List {
+                    ForEach(peers) { peer in
+                        peerRow(peer)
                     }
                 }
-                .font(.callout)
+                .listStyle(.inset)
+                .frame(minHeight: 180)
 
-                Text("Revoking removes this Mac's trust in that iPhone. It can no longer connect, see your projects, or approve anything — and the rendezvous records are wiped so a future pairing starts clean.")
+                Text("Revoking removes this Mac's trust in that device. It can no longer connect, see your projects, or approve anything.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 380)
 
-                Button("Revoke This Device", role: .destructive) { confirmingRevoke = true }
-                    .confirmationDialog(
-                        "Revoke \(paired.name)?",
-                        isPresented: $confirmingRevoke, titleVisibility: .visible
-                    ) {
-                        Button("Revoke", role: .destructive) {
-                            pairing.unpair()
-                            self.paired = nil
-                        }
-                    } message: {
-                        Text("You'll need to pair again from both devices to reconnect.")
-                    }
-            } else {
-                PairingPhaseView(session: pairing)
+                Button("Pair Another Device…") {
+                    addingDevice = true
+                    pairing.start()
+                }
             }
         }
         .padding(24)
         .frame(minWidth: 460, minHeight: 340)
-        .onReceive(NotificationCenter.default.publisher(for: PairingStore.changed)) { _ in
-            paired = PairingStore.load()
+        .confirmationDialog(
+            "Revoke \(revoking?.name ?? "")?",
+            isPresented: Binding(
+                get: { revoking != nil },
+                set: { if !$0 { revoking = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Revoke", role: .destructive) {
+                if let peer = revoking { pairing.unpair(peer) }
+                revoking = nil
+            }
+        } message: {
+            Text("You'll need to pair again from both devices to reconnect.")
         }
+        .onReceive(NotificationCenter.default.publisher(for: PairingStore.changed)) { _ in
+            peers = PairingStore.peers()
+            if case .paired = pairing.phase { addingDevice = false }
+        }
+    }
+
+    private func peerRow(_ peer: PairedPeer) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: peer.role == .mac ? "macbook" : "iphone.gen3")
+                .font(.title3)
+                .foregroundStyle(.tint)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(peer.name).font(.headline)
+                if clients.clients.contains(where: { !$0.loopback && $0.name == peer.name }) {
+                    Label("Connected now", systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                } else {
+                    Text("Paired \(peer.pairedAt.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button("Revoke", role: .destructive) { revoking = peer }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.red)
+        }
+        .padding(.vertical, 4)
     }
 }

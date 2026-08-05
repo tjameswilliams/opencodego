@@ -16,11 +16,49 @@ enum WorkspaceSelection: Hashable {
 /// and a session pane can both see them.
 @MainActor
 final class WorkspaceState: ObservableObject {
-    /// How everything in this window reaches the companion. The loopback
-    /// key never leaves the process; the link performs the full Wire
-    /// handshake against our own listener — the same path a remote Mac
-    /// will use, which is the point.
-    let makeLink: () -> CompanionLink = { CompanionLink(target: .local(LoopbackTrust.key)) }
+    /// Which Mac this window drives: nil is this one, over loopback; a
+    /// peer is a remote Mac over the paired channel (LAN trial, then the
+    /// punched path). Loopback runs the identical Wire handshake against
+    /// our own listener — the same path a remote Mac uses, which is the
+    /// point.
+    @Published private(set) var activePeer: PairedPeer?
+
+    /// How everything in this window reaches the companion. Pinned per
+    /// peer: rebuilt on switch, so anything that captured it keeps talking
+    /// to the Mac it was made for.
+    private(set) var makeLink: () -> CompanionLink
+
+    private static func link(for peer: PairedPeer?) -> () -> CompanionLink {
+        if let peer { return { CompanionLink(target: .peer(peer)) } }
+        return { CompanionLink(target: .local(LoopbackTrust.key)) }
+    }
+
+    /// The Macs the sidebar offers besides this one.
+    var pairedMacs: [PairedPeer] {
+        PairingStore.peers().filter { $0.role == .mac }
+    }
+
+    /// Point the window at another Mac: fresh link, fresh stores, fresh
+    /// lists — a workspace's whole world is per-peer.
+    func selectPeer(_ peer: PairedPeer?) {
+        guard peer?.id != activePeer?.id else { return }
+        activePeer = peer
+        makeLink = Self.link(for: peer)
+        models = ModelStore(makeLink: makeLink)
+        agents = AgentStore(makeLink: makeLink)
+        commands = CommandStore(makeLink: makeLink)
+        selection = nil
+        sessions = []
+        projects = []
+        error = nil
+        search = ""
+        Task {
+            await load()
+            await models.loadIfNeeded()
+            await agents.loadIfNeeded()
+            await commands.loadIfNeeded()
+        }
+    }
 
     @Published var projects: [Project] = []
     @Published var sessions: [Session] = []
@@ -38,19 +76,20 @@ final class WorkspaceState: ObservableObject {
     /// to take it into the input field.
     @Published var pendingCommand: AgentCommand?
 
-    /// Per-window stores, built over this window's link — not the phone's
-    /// process-wide singletons, which point at the paired Mac.
-    let models: ModelStore
-    let agents: AgentStore
-    let commands: CommandStore
+    /// Per-window, per-peer stores, built over this window's link — not
+    /// the phone's process-wide singletons.
+    private(set) var models: ModelStore
+    private(set) var agents: AgentStore
+    private(set) var commands: CommandStore
 
     private var searchTask: Task<Void, Never>?
 
     init() {
-        let makeLink = makeLink
-        models = ModelStore(makeLink: makeLink)
-        agents = AgentStore(makeLink: makeLink)
-        commands = CommandStore(makeLink: makeLink)
+        let link = Self.link(for: nil)
+        makeLink = link
+        models = ModelStore(makeLink: link)
+        agents = AgentStore(makeLink: link)
+        commands = CommandStore(makeLink: link)
     }
 
     func load() async {
