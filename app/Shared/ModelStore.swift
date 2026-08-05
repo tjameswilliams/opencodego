@@ -28,7 +28,14 @@ final class ModelStore: ObservableObject {
 
     private static let key = "opencodego.model"
 
-    private init() {}
+    /// How this store reaches a companion. The phone's singleton keeps the
+    /// default (the paired Mac); the desktop workspace injects a per-peer
+    /// factory, loopback included.
+    private let makeLink: () -> CompanionLink
+
+    init(makeLink: @escaping () -> CompanionLink = { CompanionLink() }) {
+        self.makeLink = makeLink
+    }
 
     /// What the composer's chip says.
     var label: String {
@@ -67,7 +74,7 @@ final class ModelStore: ObservableObject {
         loading = true
         error = nil
         defer { loading = false }
-        for await event in MacLink().run(Wire.Request(kind: "models")) {
+        for await event in makeLink().run(Wire.Request(kind: "models")) {
             if event.kind == "failed" { error = event.text }
             guard event.kind == "models" else { continue }
             models = event.models ?? []

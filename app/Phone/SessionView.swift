@@ -116,7 +116,7 @@ struct SessionView: View {
                 wire.project = project
                 wire.answers = answers
                 Task {
-                    for await event in MacLink().run(wire) where event.kind == "failed" {
+                    for await event in CompanionLink().run(wire) where event.kind == "failed" {
                         error = event.text
                     }
                 }
@@ -205,7 +205,7 @@ struct SessionView: View {
         cursor = 0
         turnStartedAt = Date()
         running = true
-        Task { await consume(MacLink().run(request)) }
+        Task { await consume(CompanionLink().run(request)) }
     }
 
     private func resume() {
@@ -213,7 +213,7 @@ struct SessionView: View {
         var request = Wire.Request(kind: "resume")
         request.turn = turnID
         request.from = cursor
-        Task { await consume(MacLink().run(request)) }
+        Task { await consume(CompanionLink().run(request)) }
     }
 
     /// Stops the agent, not just the stream: the Mac tells OpenCode to
@@ -225,7 +225,7 @@ struct SessionView: View {
         request.session = session
         request.project = project
         Task {
-            for await event in MacLink().run(request) where event.kind == "failed" {
+            for await event in CompanionLink().run(request) where event.kind == "failed" {
                 error = event.text
             }
         }
@@ -293,7 +293,7 @@ struct SessionView: View {
             wire.project = project
             wire.reply = reply
             wire.message = message
-            for await event in MacLink().run(wire) where event.kind == "failed" {
+            for await event in CompanionLink().run(wire) where event.kind == "failed" {
                 error = event.text
             }
         }
@@ -306,7 +306,7 @@ struct SessionView: View {
         var request = Wire.Request(kind: "transcript")
         request.session = session
         request.project = project
-        for await event in MacLink().run(request) {
+        for await event in CompanionLink().run(request) {
             switch event.kind {
             case "part": if let part = event.part { upsert(part) }
             case "diff": diffs = event.diffs ?? []

@@ -23,7 +23,7 @@ targets:
   MacCompanion:
     type: application
     platform: macOS
-    sources: [MacCompanion]
+    sources: [MacCompanion, Shared]
     dependencies:
       - package: RemoteKit
       - package: Sparkle
@@ -78,7 +78,7 @@ targets:
   Phone:
     type: application
     platform: iOS
-    sources: [Phone]
+    sources: [Phone, Shared]
     # Required by App Store Connect since 2024: declares which
     # "required reason" APIs the app touches and that it collects nothing.
     resources: [Phone/PrivacyInfo.xcprivacy]

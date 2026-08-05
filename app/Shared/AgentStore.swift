@@ -20,7 +20,12 @@ final class AgentStore: ObservableObject {
     private static let key = "opencodego.agent"
     private var loading = false
 
-    private init() {}
+    /// How this store reaches a companion — see ModelStore.makeLink.
+    private let makeLink: () -> CompanionLink
+
+    init(makeLink: @escaping () -> CompanionLink = { CompanionLink() }) {
+        self.makeLink = makeLink
+    }
 
     /// Nil means "whatever OpenCode defaults to", which is `build`.
     var label: String { (selected?.name ?? "build").capitalized }
@@ -45,7 +50,7 @@ final class AgentStore: ObservableObject {
         guard agents.isEmpty, !loading else { return }
         loading = true
         defer { loading = false }
-        for await event in MacLink().run(Wire.Request(kind: "agents")) {
+        for await event in makeLink().run(Wire.Request(kind: "agents")) {
             guard event.kind == "agents" else { continue }
             agents = event.agents ?? []
             if selected == nil, let remembered = UserDefaults.standard.string(forKey: Self.key) {

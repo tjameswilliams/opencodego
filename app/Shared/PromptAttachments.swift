@@ -1,7 +1,15 @@
 import RemoteKit
-import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(iOS)
+import PhotosUI
+#endif
+
+#if canImport(UIKit)
+typealias PlatformImage = UIImage
+#else
+typealias PlatformImage = NSImage
+#endif
 
 /// Files staged for the next prompt, and the shrinking that makes sending
 /// them from a phone reasonable.
@@ -22,7 +30,7 @@ final class PromptAttachments: ObservableObject {
         var mime: String
         var data: Data
         /// Rendered for the composer strip; nil for non-images.
-        var thumbnail: UIImage?
+        var thumbnail: PlatformImage?
     }
 
     /// Matches the Mac's limit, checked here too so the failure lands
@@ -44,10 +52,11 @@ final class PromptAttachments: ObservableObject {
             return
         }
         append(Item(
-            name: name, mime: "image/jpeg", data: jpeg, thumbnail: UIImage(data: jpeg)
+            name: name, mime: "image/jpeg", data: jpeg, thumbnail: PlatformImage(data: jpeg)
         ))
     }
 
+    #if os(iOS)
     /// Camera captures arrive as UIImage rather than file bytes; hand the
     /// same pipeline a JPEG to work from.
     func add(image: UIImage, name: String = "photo.jpg") {
@@ -57,6 +66,7 @@ final class PromptAttachments: ObservableObject {
         }
         add(imageData: raw, name: name)
     }
+    #endif
 
     func add(fileAt url: URL) {
         // Security-scoped: files from the document picker live outside our
@@ -79,6 +89,7 @@ final class PromptAttachments: ObservableObject {
         append(Item(name: url.lastPathComponent, mime: mime, data: data, thumbnail: nil))
     }
 
+    #if os(iOS)
     func load(_ selection: [PhotosPickerItem]) async {
         for item in selection {
             guard let data = try? await item.loadTransferable(type: Data.self)
@@ -89,6 +100,7 @@ final class PromptAttachments: ObservableObject {
                 .map { "image.\($0)" } ?? "image.jpg")
         }
     }
+    #endif
 
     func remove(_ id: String) {
         items.removeAll { $0.id == id }
@@ -131,9 +143,15 @@ struct AttachmentStrip: View {
                     ZStack(alignment: .topTrailing) {
                         Group {
                             if let thumbnail = item.thumbnail {
+                                #if canImport(UIKit)
                                 Image(uiImage: thumbnail)
                                     .resizable()
                                     .scaledToFill()
+                                #else
+                                Image(nsImage: thumbnail)
+                                    .resizable()
+                                    .scaledToFill()
+                                #endif
                             } else {
                                 VStack(spacing: 2) {
                                     Image(systemName: "doc")

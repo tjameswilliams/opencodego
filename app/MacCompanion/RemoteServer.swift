@@ -135,7 +135,7 @@ private final class Connection {
     private let serverNonce = Wire.Security.nonce()
     private var channel: Wire.SecureChannel?
     private var retainCycle: Connection?
-    private var announced = false
+    private var clientToken: UUID?
     private var peerCompresses = false
 
     init(
@@ -156,9 +156,9 @@ private final class Connection {
         }
         transport.onClosed = { [weak self] _ in
             guard let self else { return }
-            if announced {
-                announced = false
-                PhoneLinkMonitor.shared.noteDisconnected()
+            if let token = clientToken {
+                clientToken = nil
+                ConnectedClients.shared.noteDisconnected(token)
             }
             retainCycle = nil
         }
@@ -193,26 +193,37 @@ private final class Connection {
             refuse("Expected authentication.")
             return
         }
-        guard PairingStore.load() != nil, let channelKey = try? PairingStore.channelKey() else {
-            refuse("This Mac isn't paired with an iPhone yet. Open Devices in the Mac menu bar app to pair.")
-            return
+        // Key possession is identity: the tag is tried against every trust
+        // this Mac holds — its own in-process loopback key first, then the
+        // paired device's channel key. Whichever verifies says who this is;
+        // nothing on the wire claims anything.
+        var candidates: [(key: SymmetricKey, loopback: Bool)] = [(LoopbackTrust.key, true)]
+        if let channelKey = try? PairingStore.channelKey() {
+            candidates.append((channelKey, false))
         }
-        guard Wire.Security.verify(
-            tag: auth.tag, channelKey: channelKey,
-            serverNonce: serverNonce, clientNonce: auth.nonce, name: auth.name
-        ) else {
-            logger.error("auth failed for '\(auth.name, privacy: .public)'")
-            refuse("This device isn't paired with this Mac.")
+        guard let matched = candidates.first(where: {
+            Wire.Security.verify(
+                tag: auth.tag, channelKey: $0.key,
+                serverNonce: serverNonce, clientNonce: auth.nonce, name: auth.name
+            )
+        }) else {
+            if PairingStore.load() == nil {
+                refuse("This Mac isn't paired with a device yet. Open Devices in the Mac menu bar app to pair.")
+            } else {
+                logger.error("auth failed for '\(auth.name, privacy: .public)'")
+                refuse("This device isn't paired with this Mac.")
+            }
             return
         }
         let sessionKey = Wire.Security.sessionKey(
-            channelKey: channelKey, serverNonce: serverNonce, clientNonce: auth.nonce
+            channelKey: matched.key, serverNonce: serverNonce, clientNonce: auth.nonce
         )
         channel = Wire.SecureChannel(key: sessionKey)
         peerCompresses = auth.compress == true
-        announced = true
-        PhoneLinkMonitor.shared.noteAuthenticated(name: auth.name)
-        logger.notice("authenticated '\(auth.name, privacy: .public)'")
+        clientToken = ConnectedClients.shared.noteAuthenticated(
+            name: auth.name, loopback: matched.loopback
+        )
+        logger.notice("authenticated '\(auth.name, privacy: .public)'\(matched.loopback ? " (loopback)" : "")")
         Task { @MainActor in
             var ready = Wire.Event(kind: "ready")
             ready.compress = true

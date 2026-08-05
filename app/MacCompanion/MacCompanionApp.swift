@@ -8,7 +8,7 @@ import SwiftUI
 @main
 struct MacCompanionApp: App {
     @StateObject private var opencode: OpenCodeProcess
-    @StateObject private var phone = PhoneLinkMonitor.shared
+    @StateObject private var phone = ConnectedClients.shared
     @StateObject private var server: RemoteServer
     @State private var started = false
     /// Sparkle drives its own update checks against the appcast; this also
@@ -55,6 +55,11 @@ struct MacCompanionApp: App {
             .onAppear(perform: bootstrap)
         }
 
+        Window("Workspace", id: "workspace") {
+            WorkspaceWindow()
+        }
+        .defaultSize(width: 1200, height: 800)
+
         Window("Devices", id: "devices") {
             DevicesWindow()
         }
@@ -80,7 +85,7 @@ struct MacCompanionApp: App {
 
 struct StatusMenu: View {
     @ObservedObject var opencode: OpenCodeProcess
-    @ObservedObject var phone: PhoneLinkMonitor
+    @ObservedObject var phone: ConnectedClients
     @ObservedObject var server: RemoteServer
     var updater: SPUStandardUpdaterController?
     @Environment(\.openWindow) private var openWindow
@@ -108,6 +113,10 @@ struct StatusMenu: View {
                 Text("Phone not connected")
             }
             Divider()
+            Button("Open Workspace") {
+                openWindow(id: "workspace")
+                NSApp.activate(ignoringOtherApps: true)
+            }
             Button(PairingStore.load() == nil ? "Pair iPhone…" : "Devices…") {
                 openWindow(id: "devices")
                 NSApp.activate(ignoringOtherApps: true)
@@ -131,7 +140,7 @@ struct StatusMenu: View {
 
 struct DevicesWindow: View {
     @StateObject private var pairing = PairingSession()
-    @StateObject private var phone = PhoneLinkMonitor.shared
+    @StateObject private var phone = ConnectedClients.shared
     @State private var paired = PairingStore.load()
     @State private var confirmingRevoke = false
 

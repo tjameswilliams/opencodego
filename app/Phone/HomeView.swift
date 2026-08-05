@@ -105,7 +105,7 @@ struct HomeView: View {
         // leaves a proven punch path for the next request to reuse.
         Task { reachable = await PunchClient.shared.reachable().isSuccess }
         await loadSessions()
-        for await event in MacLink().run(Wire.Request(kind: "projects")) {
+        for await event in CompanionLink().run(Wire.Request(kind: "projects")) {
             switch event.kind {
             case "projects": projects = event.projects ?? []
             case "failed": error = event.text
@@ -185,7 +185,7 @@ struct HomeView: View {
         request.session = session.id
         request.project = session.directory
         Task {
-            for await event in MacLink().run(request) where event.kind == "failed" {
+            for await event in CompanionLink().run(request) where event.kind == "failed" {
                 error = event.text
                 if let index { sessions.insert(session, at: min(index, sessions.count)) }
             }
@@ -204,7 +204,7 @@ struct HomeView: View {
         request.project = session.directory
         request.title = trimmed
         Task {
-            for await event in MacLink().run(request) where event.kind == "failed" {
+            for await event in CompanionLink().run(request) where event.kind == "failed" {
                 error = event.text
             }
         }
@@ -215,7 +215,7 @@ struct HomeView: View {
     private func loadSessions() async {
         var request = Wire.Request(kind: "sessions")
         request.search = search.isEmpty ? nil : search
-        for await event in MacLink().run(request) {
+        for await event in CompanionLink().run(request) {
             switch event.kind {
             case "sessions": sessions = event.sessions ?? []
             case "failed": error = event.text

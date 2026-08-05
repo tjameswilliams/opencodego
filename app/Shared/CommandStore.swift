@@ -17,13 +17,18 @@ final class CommandStore: ObservableObject {
     /// old to answer, should cost the user a palette — not an error.
     @Published private(set) var available = true
 
-    private init() {}
+    /// How this store reaches a companion — see ModelStore.makeLink.
+    private let makeLink: () -> CompanionLink
+
+    init(makeLink: @escaping () -> CompanionLink = { CompanionLink() }) {
+        self.makeLink = makeLink
+    }
 
     func loadIfNeeded() async {
         guard commands.isEmpty, !loading else { return }
         loading = true
         defer { loading = false }
-        for await event in MacLink().run(Wire.Request(kind: "commands")) {
+        for await event in makeLink().run(Wire.Request(kind: "commands")) {
             if event.kind == "failed" { available = false }
             guard event.kind == "commands" else { continue }
             commands = event.commands ?? []

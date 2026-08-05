@@ -93,7 +93,7 @@ final class PushManager: NSObject, UIApplicationDelegate, UNUserNotificationCent
             wire.project = directory
             wire.reply = response.actionIdentifier == Attention.allowAction ? "once" : "reject"
             var failure: String?
-            for await event in MacLink().run(wire) where event.kind == "failed" {
+            for await event in CompanionLink().run(wire) where event.kind == "failed" {
                 failure = event.text
             }
             // The Mac was unreachable, so nothing was decided. Put the user

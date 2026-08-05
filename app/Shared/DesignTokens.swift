@@ -27,13 +27,27 @@ extension Color {
     /// surface — there are no free-floating dividers in this system.
     static let hairline = Color(light: 0x14_1413, dark: 0xFA_F9F5).opacity(0.10)
 
+    #if canImport(UIKit)
     init(light: UInt32, dark: UInt32) {
         self.init(UIColor { traits in
             UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
         })
     }
+    #else
+    init(light: UInt32, dark: UInt32) {
+        // The AppKit twin of UIColor's trait-driven initialiser: a named
+        // dynamic color re-resolves whenever the effective appearance
+        // changes, which is what keeps a long-lived window honest about
+        // System ↔ Light ↔ Dark switches.
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return NSColor(hex: isDark ? dark : light)
+        })
+    }
+    #endif
 }
 
+#if canImport(UIKit)
 private extension UIColor {
     convenience init(hex: UInt32) {
         self.init(
@@ -44,6 +58,18 @@ private extension UIColor {
         )
     }
 }
+#else
+private extension NSColor {
+    convenience init(hex: UInt32) {
+        self.init(
+            srgbRed: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+}
+#endif
 
 // MARK: - Space
 

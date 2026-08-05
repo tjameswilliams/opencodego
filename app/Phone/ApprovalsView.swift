@@ -88,7 +88,7 @@ struct ApprovalsView: View {
                     wire.project = attention.directory
                     wire.answers = answers
                     Task {
-                        for await event in MacLink().run(wire) where event.kind == "failed" {
+                        for await event in CompanionLink().run(wire) where event.kind == "failed" {
                             error = event.text
                         }
                     }
@@ -102,7 +102,7 @@ struct ApprovalsView: View {
         guard let directory = attention.directory else { return }
         var request = Wire.Request(kind: "pending")
         request.project = directory
-        for await event in MacLink().run(request) {
+        for await event in CompanionLink().run(request) {
             switch event.kind {
             case "pending":
                 pending = event.permissions ?? []
@@ -124,7 +124,7 @@ struct ApprovalsView: View {
             wire.permissionID = request.id
             wire.project = attention.directory
             wire.reply = reply
-            for await event in MacLink().run(wire) where event.kind == "failed" {
+            for await event in CompanionLink().run(wire) where event.kind == "failed" {
                 error = event.text
             }
         }

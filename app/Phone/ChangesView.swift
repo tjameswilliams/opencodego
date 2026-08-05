@@ -90,7 +90,7 @@ struct ChangesView: View {
         var request = Wire.Request(kind: "changes")
         request.project = project
         request.mode = mode
-        for await event in MacLink().run(request) {
+        for await event in CompanionLink().run(request) {
             switch event.kind {
             case "changes": changes = event.changes
             case "failed": error = event.text

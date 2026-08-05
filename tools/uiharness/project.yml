@@ -26,19 +26,19 @@ targets:
     sources:
       - Harness
       - path: ../../app/Phone/Composer.swift
-      - path: ../../app/Phone/WorkingIndicator.swift
-      - path: ../../app/Phone/BrandWordmark.swift
-      - path: ../../app/Phone/DesignTokens.swift
-      - path: ../../app/Phone/AgentStore.swift
-      - path: ../../app/Phone/TodoList.swift
       - path: ../../app/Phone/ChangesView.swift
-      - path: ../../app/Phone/Transcript.swift
       - path: ../../app/Phone/PermissionSheet.swift
-      - path: ../../app/Phone/ReasoningBlock.swift
       - path: ../../app/Phone/Dictation.swift
-      - path: ../../app/Phone/PromptAttachments.swift
-      - path: ../../app/Phone/ModelStore.swift
-      - path: ../../app/Phone/MacLink.swift
+      - path: ../../app/Shared/ComposerMenus.swift
+      - path: ../../app/Shared/WorkingIndicator.swift
+      - path: ../../app/Shared/BrandWordmark.swift
+      - path: ../../app/Shared/DesignTokens.swift
+      - path: ../../app/Shared/AgentStore.swift
+      - path: ../../app/Shared/TodoList.swift
+      - path: ../../app/Shared/Transcript.swift
+      - path: ../../app/Shared/ReasoningBlock.swift
+      - path: ../../app/Shared/PromptAttachments.swift
+      - path: ../../app/Shared/ModelStore.swift
     info:
       path: Harness/Info.plist
       properties:

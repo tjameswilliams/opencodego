@@ -145,3 +145,51 @@ struct WireTests {
         #expect(decoded.text == "hi")
     }
 }
+
+/// The server's multi-key trust decision, at the crypto layer it rests on:
+/// an auth tag identifies its key among candidates, and only its key. This
+/// is what lets one Mac serve its paired phone and its own loopback
+/// workspace on the same listener without either being able to pose as
+/// the other.
+@Suite("Trust keyring")
+struct TrustKeyringTests {
+    private let serverNonce = Wire.Security.nonce()
+    private let clientNonce = Wire.Security.nonce()
+
+    private func tag(_ key: SymmetricKey, name: String = "Workspace") -> String {
+        Wire.Security.authTag(
+            channelKey: key, serverNonce: serverNonce,
+            clientNonce: clientNonce, name: name
+        )
+    }
+
+    private func match(_ tag: String, in candidates: [SymmetricKey], name: String = "Workspace") -> Int? {
+        candidates.firstIndex { key in
+            Wire.Security.verify(
+                tag: tag, channelKey: key,
+                serverNonce: serverNonce, clientNonce: clientNonce, name: name
+            )
+        }
+    }
+
+    @Test("A tag picks out exactly its own key among candidates")
+    func identifiesKey() {
+        let loopback = SymmetricKey(size: .bits256)
+        let channel = SymmetricKey(size: .bits256)
+        #expect(match(tag(loopback), in: [loopback, channel]) == 0)
+        #expect(match(tag(channel), in: [loopback, channel]) == 1)
+    }
+
+    @Test("A stranger's tag matches no candidate")
+    func refusesStranger() {
+        let candidates = [SymmetricKey(size: .bits256), SymmetricKey(size: .bits256)]
+        #expect(match(tag(SymmetricKey(size: .bits256)), in: candidates) == nil)
+    }
+
+    @Test("The tag binds the claimed name")
+    func bindsName() {
+        let key = SymmetricKey(size: .bits256)
+        let honest = tag(key, name: "Workspace")
+        #expect(match(honest, in: [key], name: "Impostor") == nil)
+    }
+}
