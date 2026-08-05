@@ -59,6 +59,7 @@ struct MacCompanionApp: App {
             WorkspaceWindow()
         }
         .defaultSize(width: 1200, height: 800)
+        .commands { WorkspaceCommands() }
 
         Window("Devices", id: "devices") {
             DevicesWindow()
