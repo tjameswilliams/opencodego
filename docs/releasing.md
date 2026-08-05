@@ -46,6 +46,9 @@ Tomte runs.
 
 ## Before 1.2 ships (one-time)
 
+- [x] **Done 2026-08-05** — both fields deployed to Production and
+      verified in the console (DevicePeer: 16 fields).
+
 Multi-peer pairing adds two fields to the `DevicePeer` record type:
 `deviceID` (String) and `deviceIDs` (String List, on the directory
 record). The Development environment creates them automatically on first
